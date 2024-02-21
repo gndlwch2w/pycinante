@@ -2,7 +2,11 @@ from setuptools import setup, find_packages
 import pycinante
 
 requirements = [
-    'numpy',
+    'setuptools~=68.2.2',
+    'python-archive~=0.2',
+    'cryptography~=41.0.7',
+    'numpy~=1.23.0',
+    'matplotlib~=3.7.4'
 ]
 
 setup(
