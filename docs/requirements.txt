@@ -1,8 +1,9 @@
-recommonmark
-sphinx_rtd_theme
-sphinxcontrib-napoleon
-sphinxcontrib-apidoc
-python-archive
-cryptography
-numpy
-matplotlib
+recommonmark==0.7.1
+sphinx==7.1.2
+sphinx_rtd_theme==2.0.0
+sphinxcontrib-napoleon==0.7
+sphinxcontrib-apidoc==0.5.0
+python-archive==0.2
+cryptography==41.0.7
+numpy==1.24.4
+matplotlib==3.7.5
