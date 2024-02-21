@@ -22,7 +22,8 @@ release = '0.0.2'
 
 extensions = [
     'recommonmark',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.autodoc'
 ]
 
 napoleon_google_docstring = False
