@@ -3,7 +3,7 @@
 
 from collections import OrderedDict
 from typing import TypeVar, Dict, Callable, Tuple, Union, Optional
-from validator import require_variable_name, require_optional_type
+from pycinante.validator import require_variable_name, require_optional_type
 
 __all__ = [
     'is_empty',
@@ -63,7 +63,7 @@ class DefaultDict(Dict[K, V]):
 
     Args:
         factory (Callable[[], Any]): when a key does not exist in the dictionary, return the
-            value returned by the factory method.
+        value returned by the factory method.
         args (Mapping, Iterable): new dictionary initialized from a mapping object's k-v pairs.
         kwargs (Mapping): new dictionary initialized with the name=value pairs.
 
@@ -122,9 +122,9 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
     Args:
         d (Dict[str, Any]): new dictionary initialized from a mapping object's k-v pairs.
         factory (Callable[[], Any]): when a key does not exist in the dictionary, return the
-            value returned by the factory method.
+        value returned by the factory method.
         kwargs (Dict[str, Any]): the key-value pairs passed through kwargs will be used together
-            with d as the initial dictionary.
+        with d as the initial dictionary.
 
     >>> d = AttrDict({'foo': 'bar'})
     >>> assert d['foo'] == d.foo

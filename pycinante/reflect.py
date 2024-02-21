@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 def cinvoke(c: bool, obj: object, m: str, *args, **kwargs) -> Any:
-    """Return obj.m(*args, **kwargs) if c is True, obj otherwise.
+    """Return `obj.m(*args, **kwargs)` if c is True, obj otherwise.
 
     >>> cinvoke(True, 'hello world', 'upper')
     'HELLO WORLD'
@@ -27,7 +27,7 @@ def compose(*funcs: List[Callable]) -> Callable:
     """Compose all functions. The previous function must accept one argument, which is the
     output of the next function. The last function can accept any args and kwargs.
 
-    compose(f1, f2, f3)(*args, **kwargs) is same to f3(f2(f1(*args, **kwargs))).
+    `compose(f1, f2, f3)(*args, **kwargs)` is same to `f3(f2(f1(*args, **kwargs)))`.
 
     >>> compose(lambda x: x + 10, lambda x: x ** 2, lambda x: x / 0.5)(10)
     800.0

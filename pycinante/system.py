@@ -119,7 +119,7 @@ def execute(command: str, shell: bool = False, env: dict = None, timeout: int = 
         shell (bool, optional): If true, the command will be executed through the shell.
         env (dict, optional): Defines the environment variables for the new process.
         timeout (int, optional): If the process does not terminate after `timeout` seconds,
-            a `TimeoutExpired` exception will be raised.
+        a `TimeoutExpired` exception will be raised.
 
     Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/cmd.py
     """

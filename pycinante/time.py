@@ -3,7 +3,7 @@
 
 import time
 from typing import Callable, Tuple, Type, Union, Any
-from validator import require_not_none
+from pycinante.validator import require_not_none
 
 __all__ = [
     'Timer',

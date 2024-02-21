@@ -59,7 +59,7 @@ def unique(seq: List[T], key: Callable[[T], bool] = None) -> List[T]:
     Args:
         seq (List): list to be removed duplicate elements.
         key (Callable): the value of the optional `key` parameter should be a function
-            that takes a single argument and returns a key to test the uniqueness.
+        that takes a single argument and returns a key to test the uniqueness.
 
     >>> unique([1, 2, 3])
     [1, 2, 3]

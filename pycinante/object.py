@@ -1,7 +1,7 @@
 """This module provides functionality for initializing an object.
 """
 
-from typing import Dict, List, Union, Iterable
+from typing import TypeVar, Dict, List, Union, Iterable, Mapping, overload, Tuple, Any
 
 __all__ = [
     'NameFactory'
@@ -10,8 +10,7 @@ __all__ = [
 T = TypeVar('T')
 
 class NameFactory(Dict[str, T]):
-    """Naming Dict used to create an instance given its name.
-    """
+    """Naming Dict used to create an instance given its name."""
 
     def __init__(self, name: str, d: Union[Mapping[str, T], Iterable] = None):
         super(NameFactory, self).__init__(d or {})
@@ -36,8 +35,8 @@ class NameFactory(Dict[str, T]):
 
         Args:
             names (Union[str, Iterable[str]]): the class names to be initialized.
-            *args (Tuple[Any]): the positional arguments to be passed to the constructor of the class.
-            **kwargs (Dict[str, Any]): the keyword arguments to be passed to the constructor of the class.
+            args (Tuple[Any]): the positional arguments to be passed to the constructor of the class.
+            kwargs (Dict[str, Any]): the keyword arguments to be passed to the constructor of the class.
         """
         if isinstance(names, str):
             if names not in self.keys():

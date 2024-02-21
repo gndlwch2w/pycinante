@@ -199,7 +199,7 @@ def sanitize_path(pathname: str, rep: str = None) -> str:
 
 def join(pathname: str, *pathnames: str) -> str:
     """Join one or more pathname segments intelligently. The return value is the
-    concatenation of pathname and all members of *pathnames, with exactly one directory
+    concatenation of pathname and all members of `*pathnames`, with exactly one directory
     separator following each non-empty part, except the last.
 
     >>> join('/path/', 'etc', 'bin/', 'starting.conf')

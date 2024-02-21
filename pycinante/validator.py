@@ -246,7 +246,7 @@ def check_probability(index: Union[int, List[int]] = None, msg: str = None) -> C
     return check_positional_arguments(require_probability, index, msg=msg)
 
 def check_regex(pattern: str, index: Union[int, List[int]] = None, msg: str = None) -> Callable:
-    """Check whether the string `args[index] matches the regular expression."""
+    """Check whether the string args[index] matches the regular expression."""
     return check_positional_arguments(require_regex, index, pattern=pattern, msg=msg)
 
 def check_variable_name(index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
