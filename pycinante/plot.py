@@ -3,17 +3,22 @@
 from __future__ import annotations
 from matplotlib import pyplot as plt
 from matplotlib_inline import backend_inline
-from typing import List, Union, Tuple
-from pycinante.list import wrap
+from typing import Union, Tuple
+from pycinante.list import listify
 from pycinante.system import is_on_ipython
 from pycinante.validator import check_condition
 
 try:
+    # noinspection PyUnresolvedReferences
     from IPython import display
 except ImportError:
     pass
 
 __all__ = [
+    'use_svg_display',
+    'use_chinese_display',
+    'plot',
+    'plt',
     'Animator'
 ]
 
@@ -30,28 +35,42 @@ def set_figsize(figsize: tuple[float, float] = (3.5, 2.5)) -> None:
     """Set the figure size for matplotlib."""
     plt.rcParams['figure.figsize'] = figsize
 
-def set_axes(axes: plt.Axes,
-             xlabel: str,
-             ylabel: str,
-             xlim: Union[int, Tuple[int, int]],
-             ylim: Union[int, Tuple[int, int]],
-             xscale: str,
-             yscale: str,
-             legend: List[str]) -> None:
+def set_axes(
+    axes: plt.Axes,
+    xlabel: str,
+    ylabel: str,
+    xlim: float | tuple[float, float],
+    ylim: float | tuple[float, float],
+    xscale: str,
+    yscale: str,
+    legend: tuple[str]
+) -> None:
     """Set the axes for matplotlib."""
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     axes.set_xscale(xscale)
     axes.set_yscale(yscale)
-    axes.set_xlim(*wrap(xlim))
-    axes.set_ylim(*wrap(ylim))
+    axes.set_xlim(*listify(xlim))
+    axes.set_ylim(*listify(ylim))
     if legend:
         axes.legend(legend)
     axes.grid()
 
-def plot(X, Y=None, xlabel=None, ylabel=None, legend=None, xlim=None,
-         ylim=None, xscale='linear', yscale='linear',
-         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):
+# noinspection PyUnresolvedReferences
+def plot(
+    X: Union[list, 'np.ndarray', 'torch.Tensor'],
+    Y: Union[list, 'np.ndarray', 'torch.Tensor', None] = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    legend: Tuple[str] | None = None,
+    xlim: float | tuple[float, float] | None = None,
+    ylim: float | tuple[float, float] | None = None,
+    xscale: str = 'linear',
+    yscale: str = 'linear',
+    fmts: tuple[str] = ('-', 'm--', 'g-.', 'r:'),
+    figsize: tuple[float, float] = (3.5, 2.5),
+    axes: plt.Axes | None = None
+) -> None:
     """Plot data points."""
     legend = legend or []
     set_figsize(figsize)
@@ -79,16 +98,24 @@ def plot(X, Y=None, xlabel=None, ylabel=None, legend=None, xlim=None,
     set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
 
 class Animator:
-    """For plotting data in animation.
-
-    Ref: [1] https://pypi.org/project/d2l/
+    """For plotting data in animation. Ref: https://pypi.org/project/d2l/.
     """
 
-    @check_condition(is_on_ipython, 'A animator must be run in a notebook')
-    def __init__(self, xlabel: str = None, ylabel: str = None, legend: List[str] = None,
-                 xlim: Union[int, Tuple[int, int]] = None, ylim: Union[int, Tuple[int, int]] = None,
-                 xscale: str = 'linear', yscale: str = 'linear', fmts: List[str] = ('-', 'm--', 'g-.', 'r:'),
-                 nrows: int = 1, ncols: int = 1, figsize: Tuple[int, int] = (3.5, 2.5)):
+    @check_condition(is_on_ipython, 'a animator must be run in a notebook')
+    def __init__(
+        self,
+        xlabel: str = None,
+        ylabel: str = None,
+        legend: tuple[str] = None,
+        xlim: float | tuple[float, float] | None = None,
+        ylim: float | tuple[float, float] | None = None,
+        xscale: str = 'linear',
+        yscale: str = 'linear',
+        fmts: tuple[str] = ('-', 'm--', 'g-.', 'r:'),
+        nrows: int = 1,
+        ncols: int = 1,
+        figsize: tuple[float, float] = (3.5, 2.5)
+    ) -> None:
         legend = legend or []
         backend_inline.set_matplotlib_formats('svg')
         self.fig, self.axes = plt.subplots(nrows, ncols, figsize=figsize)
@@ -98,7 +125,12 @@ class Animator:
             self.axes[0], xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
         self.X, self.Y, self.fmts = None, None, fmts
 
-    def add(self, x: Union[float, List[float]], y: Union[float, List[float]]) -> None:
+    # noinspection PyUnresolvedReferences
+    def add(
+        self,
+        x: Union[float, list[float], 'np.ndarray', 'torch.Tensor'],
+        y: Union[float, list[float], 'np.ndarray', 'torch.Tensor']
+    ) -> None:
         """Add multiple data points into the figure."""
         y = (not hasattr(y, '__len__') and [y]) or y
         n = len(y)

@@ -1,10 +1,9 @@
 """This module provides some arithmetic related functions.
 """
-
-from typing import Union, List, Optional
+from __future__ import annotations
+from pycinante.types import Number
 
 __all__ = [
-    'Number',
     'is_equal',
     'bin2dec',
     'bin2oct',
@@ -21,8 +20,6 @@ __all__ = [
     'Accumulator',
     'AverageMeter'
 ]
-
-Number = Union[int, float]
 
 def is_equal(x: Number, y: Number, epsilon: float = 1e-6) -> bool:
     """Return whether the number `x` is equal to the `y`.
@@ -44,7 +41,7 @@ def bin2oct(x: str, prefix: bool = True) -> str:
     >>> bin2oct('0b111001111101010101010101')
     '0o71752525'
     """
-    return oct(int(x, 2))[0 if prefix else 0:]
+    return oct(int(x, 2))[0 if prefix else 2:]
 
 def bin2dec(x: str) -> int:
     """Convert binary string to decimal number.
@@ -60,7 +57,7 @@ def bin2hex(x: str, prefix: bool = True) -> str:
     >>> bin2hex('0b111001111101010101010101')
     '0xe7d555'
     """
-    return hex(int(x, 2))[0 if prefix else 0:]
+    return hex(int(x, 2))[0 if prefix else 2:]
 
 def otc2bin(x: str, prefix: bool = True) -> str:
     """Convert octal string to binary string.
@@ -68,7 +65,7 @@ def otc2bin(x: str, prefix: bool = True) -> str:
     >>> otc2bin('0o7175252525')
     '0b111001111101010101010101010101'
     """
-    return bin(int(x, 8))[0 if prefix else 0:]
+    return bin(int(x, 8))[0 if prefix else 2:]
 
 def otc2dec(x: str) -> int:
     """Convert octal string to decimal number.
@@ -84,7 +81,7 @@ def otc2hex(x: str, prefix: bool = True) -> str:
     >>> otc2hex('0o7175252525')
     '0x39f55555'
     """
-    return hex(int(x, 8))[0 if prefix else 0:]
+    return hex(int(x, 8))[0 if prefix else 2:]
 
 def dec2bin(x: int, prefix: bool = True) -> str:
     """Convert decimal number to binary string.
@@ -92,7 +89,7 @@ def dec2bin(x: int, prefix: bool = True) -> str:
     >>> dec2bin(238723234)
     '0b1110001110101010000010100010'
     """
-    return bin(x)[0 if prefix else 0:]
+    return bin(x)[0 if prefix else 2:]
 
 def dec2oct(x: int, prefix: bool = True) -> str:
     """Convert decimal number to octal string.
@@ -100,15 +97,15 @@ def dec2oct(x: int, prefix: bool = True) -> str:
     >>> dec2oct(238723234)
     '0o1616520242'
     """
-    return oct(x)[0 if prefix else 0:]
+    return oct(x)[0 if prefix else 2:]
 
 def dec2hex(x: int, prefix: bool = True) -> str:
     """Convert decimal number to hexadecimal string.
 
-    >>> dec2hex('1234')
+    >>> dec2hex(1234)
     '0x4d2'
     """
-    return hex(x)[0 if prefix else 0:]
+    return hex(x)[0 if prefix else 2:]
 
 def hex2bin(x: str, prefix: bool = True) -> str:
     """Convert hexadecimal string to binary string.
@@ -124,7 +121,7 @@ def hex2oct(x: str, prefix: bool = True) -> str:
     >>> hex2oct('0x1234')
     '0o11064'
     """
-    return oct(int(x, 16))[0 if prefix else 0:]
+    return oct(int(x, 16))[0 if prefix else 2:]
 
 def hex2dec(x: str) -> int:
     """Convert hexadecimal string to decimal number.
@@ -148,7 +145,7 @@ class Accumulator:
         import numpy as np
         self.data = np.zeros((n,), dtype=np.float32)
 
-    def add(self, *numbers: List[Number]) -> None:
+    def add(self, *numbers: Number) -> None:
         """Simultaneously accumulate the sum of n numbers individually."""
         import numpy as np
         self.data += np.array(numbers, dtype=np.float32)
@@ -163,7 +160,7 @@ class Accumulator:
         self.reset(index)
         return value
 
-    def reset(self, index: Optional[int] = None) -> None:
+    def reset(self, index: int | None = None) -> None:
         """Reset the value of the first `index` numbers to 0 if `index` is not None,
         otherwise reset all.
         """
@@ -190,7 +187,7 @@ class AverageMeter:
         self.counter = 0
         self.accumulator = Accumulator(n)
 
-    def add(self, *numbers: List[Number]) -> None:
+    def add(self, *numbers: Number) -> None:
         """Simultaneously accumulate the sum of n numbers individually."""
         self.accumulator.add(*numbers)
         self.counter += 1

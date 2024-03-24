@@ -1,14 +1,11 @@
-import locale
-from typing import Any, Tuple, Union, List
+from __future__ import annotations
+from typing import Any, Union, List
 from pycinante.reflect import cinvoke
-from pycinante.list import wrap
+from pycinante.list import listify
 
 __all__ = [
     'is_equal',
-    'is_empty',
-    'is_not_empty',
     'join',
-    'get_default_encoding',
     'safe_encode',
     'lstrip',
     'rstrip',
@@ -29,31 +26,7 @@ def is_equal(s: str, t: str, is_ignore_case: bool = False) -> bool:
     return (cinvoke(is_ignore_case, s or '', 'lower') ==
             cinvoke(is_ignore_case, t or '', 'lower'))
 
-def is_empty(s: str) -> bool:
-    """Return True if the string is empty, False otherwise.
-
-    >>> is_empty('')
-    True
-    >>> is_empty('   ')
-    True
-    >>> is_empty('Protoform')
-    False
-    """
-    return s is None or len(s.strip()) == 0
-
-def is_not_empty(s: str) -> bool:
-    """Return True if the string is not empty, False otherwise.
-
-    >>> is_not_empty('')
-    False
-    >>> is_not_empty('   ')
-    False
-    >>> is_not_empty('Scorponok')
-    True
-    """
-    return s is not None and len(s.strip()) != 0
-
-def join(*seq: Tuple[str], sep: str) -> str:
+def join(*seq: str, sep: str) -> str:
     """Concatenate any number of strings by the seperator `sep`.
 
     >>> join('Megatron', 'Starscream', 'Blackout', sep=', ')
@@ -63,19 +36,9 @@ def join(*seq: Tuple[str], sep: str) -> str:
     """
     return sep.join(seq)
 
-def get_default_encoding(encoding: str = None) -> str:
-    """Return the charset that the user is likely using, according to the system configuration if
-    the `encoding` is not specified.
-
-    >>> get_default_encoding()
-    'UTF-8'
-    >>> get_default_encoding('GBK')
-    'GBK'
-    """
-    return encoding or locale.getpreferredencoding()
-
 def safe_encode(s: Any, encoding: str = 'utf-8') -> bytes:
-    """Converts any given object to encoded string (default: utf-8).
+    """Converts any given object to encoded string (default: utf-8). Ref: https://github.-
+    -com/flaggo/pydu/blob/master/pydu/string.py.
 
     >>> safe_encode('hello')
     b'hello'
@@ -83,8 +46,6 @@ def safe_encode(s: Any, encoding: str = 'utf-8') -> bytes:
     b'\xe4\xb8\xa4\xe5\xb9\xb4\xe5\x8d\x8a'
     >>> safe_encode([1, 2, 3])
     b'[1, 2, 3]'
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/string.py
     """
     if isinstance(s, str):
         return s.encode(encoding)
@@ -92,18 +53,15 @@ def safe_encode(s: Any, encoding: str = 'utf-8') -> bytes:
         return s
     return str(s).encode(encoding)
 
-def lstrip(s: str, chars: Union[str, List[str]] = None) -> str:
+def lstrip(s: str, chars: str | list[str] | None = None) -> str:
     """Return a copy of the string with leading characters removed.
 
     >>> lstrip('abcdefghijklmnop', 'abc')
     'defghijklmnop'
     >>> lstrip('\t \t  abcdefghijklmnop', [' ', '\t'])
     'abcdefghijklmnop'
-
-    Ref: [1] https://docs.python.org/3/library/stdtypes.html#str.lstrip
-         [2] https://github.com/flaggo/pydu/blob/master/pydu/string.py
     """
-    chars = wrap(chars or [' ', '\t', '\n'])
+    chars = listify(chars or [' ', '\t', '\n'])
     while any([s.startswith(char) for char in chars]):
         for char in chars:
             s = (s.startswith(char) and s[len(char):]) or s
@@ -114,11 +72,8 @@ def rstrip(s: str, chars: Union[str, List[str]] = None) -> str:
 
     >>> rstrip('This is a sentence. \t \\n \t \\n')
     'This is a sentence.'
-
-    Ref: [1] https://docs.python.org/3/library/stdtypes.html#str.rstrip
-         [2] https://github.com/flaggo/pydu/blob/master/pydu/string.py
     """
-    chars = wrap(chars or [' ', '\t', '\n'])
+    chars = listify(chars or [' ', '\t', '\n'])
     while any([s.endswith(char) for char in chars]):
         for char in chars:
             s = (s.endswith(char) and s[:-len(char) or None]) or s
@@ -129,9 +84,6 @@ def strip(s: str, chars: Union[str, List[str]] = None) -> str:
 
     >>> strip('\\n  \\t \\n lists, tuples, sets   \\n  \\t')
     'lists, tuples, sets'
-
-    Ref: [1] https://docs.python.org/3/library/stdtypes.html#str.strip
-         [2] https://github.com/flaggo/pydu/blob/master/pydu/string.py
     """
     return rstrip(lstrip(s, chars), chars)
 

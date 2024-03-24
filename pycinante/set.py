@@ -1,17 +1,16 @@
 """This module provides functionality for a set-like object operation.
 """
-
+from __future__ import annotations
 from collections import OrderedDict
-from typing import TypeVar, Set, Iterable, Iterator
+from pycinante.types import *
 
 __all__ = [
     'OrderedSet'
 ]
 
-T = TypeVar('T')
-
 class OrderedSet(Set[T]):
-    """A set which keeps the ordering of the inserted items.
+    """A set which keeps the ordering of the inserted items. Ref: https://github.com/flag-
+    -go/pydu/blob/master/pydu/set.py.
 
     >>> s = OrderedSet([1, 2, 3])
     >>> s
@@ -24,11 +23,9 @@ class OrderedSet(Set[T]):
     True
     >>> list(s)
     [1, 2, 3, 4]
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/set.py
     """
 
-    def __init__(self, iterable: Iterable = None):
+    def __init__(self, iterable: Iterable[T] | None = None) -> None:
         super(OrderedSet, self).__init__()
         self.data = OrderedDict.fromkeys(iterable or ())
 
@@ -60,7 +57,7 @@ class OrderedSet(Set[T]):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: ...) -> bool:
         if isinstance(other, OrderedSet):
             return self.data.keys() == other.data.keys()
         return self.data.keys() == other

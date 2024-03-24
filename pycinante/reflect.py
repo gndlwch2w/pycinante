@@ -1,9 +1,9 @@
 """This module provides functions to operate a function or class similar to on Java.
 """
-
+from __future__ import annotations
 import inspect
 from functools import reduce
-from typing import Any, List, Callable, Tuple, Optional, Type
+from typing import Callable
 
 __all__ = [
     'cinvoke',
@@ -15,7 +15,7 @@ __all__ = [
     'is_accept_kwargs'
 ]
 
-def cinvoke(c: Optional[bool], obj: object, m: str, *args, **kwargs) -> Any:
+def cinvoke(c: bool | None, obj: ..., m: str, *args: ..., **kwargs: ...) -> ...:
     """Return `obj.m(*args, **kwargs)` if c is True, obj otherwise.
 
     >>> cinvoke(True, 'hello world', 'upper')
@@ -23,7 +23,7 @@ def cinvoke(c: Optional[bool], obj: object, m: str, *args, **kwargs) -> Any:
     """
     return (c and getattr(obj, m)(*args, **kwargs)) or obj
 
-def compose(*funcs: List[Callable]) -> Callable:
+def compose(*funcs: Callable) -> Callable:
     """Compose all functions. The previous function must accept one argument, which is the
     output of the next function. The last function can accept any args and kwargs.
 
@@ -42,7 +42,7 @@ def func_name(func: Callable) -> str:
     """
     return func.__name__
 
-def func_arguments(func: Callable) -> Tuple[List, Optional[str], Optional[str], List]:
+def func_arguments(func: Callable) -> tuple[list, str | None, str | None, list]:
     """Get the names and default values of a function's parameters.
 
     A tuple of four things is returned: (args, varargs, keywords, defaults).
@@ -70,40 +70,37 @@ def func_arguments(func: Callable) -> Tuple[List, Optional[str], Optional[str], 
 
 def is_accept_args(func: Callable) -> bool:
     """Return True if the function `func` accepts `args` parameters, False otherwise.
+    Ref: https://github.com/flaggo/pydu/blob/master/pydu/inspect.py.
 
     >>> is_accept_args(lambda: True)
     False
     >>> is_accept_args(is_accept_kwargs)
     True
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/inspect.py
     """
     return any([p for name, p in inspect.signature(func).parameters.items()
                 if p.kind == p.POSITIONAL_OR_KEYWORD and name != 'self'])
 
 def is_accept_varargs(func: Callable) -> bool:
     """Return True if the function `func` accepts `varargs` parameters, False otherwise.
+    Ref: https://github.com/flaggo/pydu/blob/master/pydu/inspect.py.
 
     >>> is_accept_varargs(lambda *args: len(args) != 0)
     True
     >>> is_accept_varargs(lambda x: isinstance(x, (list, tuple, set)))
     False
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/inspect.py
     """
     return any(p for p in inspect.signature(func).parameters.values()
                if p.kind == p.VAR_POSITIONAL)
 
 def is_accept_kwargs(func: Callable) -> bool:
     """Return True if the function `func` accepts `kwargs` parameters, False otherwise.
+    Ref: https://github.com/flaggo/pydu/blob/master/pydu/inspect.py.
 
     >>> def add(a, b, **kwargs): ...
     >>> is_accept_kwargs(add)
     True
     >>> is_accept_kwargs(lambda x: x ** 2)
     False
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/inspect.py
     """
     return any(p for p in inspect.signature(func).parameters.values()
                if p.kind == p.VAR_KEYWORD)

@@ -38,7 +38,7 @@ __all__ = [
 
 RSAKey = namedtuple('RSAKey', ['public', 'private'])
 
-def md5(s: str, encoding: str | None = None) -> str:
+def md5(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the md5 hex digest of the given string.
 
     >>> md5('hello world')
@@ -47,7 +47,7 @@ def md5(s: str, encoding: str | None = None) -> str:
     s = s.encode(get_default_encoding(encoding))
     return hashlib.md5(s).hexdigest()
 
-def sha1(s: str, encoding: str | None = None) -> str:
+def sha1(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the sh1 hex digest of the given string.
 
     >>> sha1('hello world')
@@ -56,7 +56,7 @@ def sha1(s: str, encoding: str | None = None) -> str:
     s = s.encode(get_default_encoding(encoding))
     return hashlib.sha1(s).hexdigest()
 
-def sha256(s: str, encoding: str | None = None) -> str:
+def sha256(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the sh256 hex digest of the given string.
 
     >>> sha256('hello world')
@@ -65,7 +65,7 @@ def sha256(s: str, encoding: str | None = None) -> str:
     s = s.encode(get_default_encoding(encoding))
     return hashlib.sha256(s).hexdigest()
 
-def sha512(s: str, encoding: str | None = None) -> str:
+def sha512(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the sh512 hex digest of the given string.
 
     >>> sha512('hello world')[:64]
@@ -74,7 +74,7 @@ def sha512(s: str, encoding: str | None = None) -> str:
     s = s.encode(get_default_encoding(encoding))
     return hashlib.sha512(s).hexdigest()
 
-def blake2(s: str, encoding: str | None = None, **kwargs) -> str:
+def blake2(s: AnyStr, encoding: str | None = None, **kwargs) -> AnyStr:
     # noinspection PyTypeChecker
     """Return the Blake2 hex digest of the given string.
 
@@ -86,7 +86,7 @@ def blake2(s: str, encoding: str | None = None, **kwargs) -> str:
     s = s.encode(get_default_encoding(encoding))
     return blake2(s, digest_size=digest_size, **kwargs).hexdigest()
 
-def shake128(s: str, encoding: str | None = None) -> str:
+def shake128(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the shake 128 hex digest of the given string.
 
     >>> shake128('hello world')[:64]
@@ -94,7 +94,7 @@ def shake128(s: str, encoding: str | None = None) -> str:
     """
     return hashlib.shake_128(s.encode(get_default_encoding(encoding))).hexdigest(64)
 
-def shake256(s: str, encoding: str | None = None) -> str:
+def shake256(s: AnyStr, encoding: str | None = None) -> AnyStr:
     """Return the shake 256 hex digest of the given string.
 
     >>> shake256('hello world')[:64]
@@ -110,10 +110,7 @@ def fernet_key(decoding: str | None = None) -> AnyStr:
     return cinvoke(decoding, Fernet.generate_key(), 'decode', decoding)
 
 def fernet_encrypt(
-        s: AnyStr,
-        key: AnyStr,
-        encoding: str | None = None,
-        decoding: str | None = None
+    s: AnyStr, key: AnyStr, encoding: str | None = None, decoding: str | None = None
 ) -> AnyStr:
     """Return the ciphertext encrypted with the given fernet key.
 
@@ -143,22 +140,21 @@ def rsa_key(decoding: str | None = None, **kwargs) -> RSAKey:
         key_size=kwargs.pop('key_size', 2048),
         backend=kwargs.pop('backend', default_backend()))
     public_key = private_key.public_key()
-    private_key = cinvoke(decoding, private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
-    ), 'decode', decoding)
-    public_key = cinvoke(decoding, public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    ), 'decode', decoding)
+    private_key = cinvoke(
+        decoding, private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        ), 'decode', decoding)
+    public_key = cinvoke(
+        decoding, public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ), 'decode', decoding)
     return RSAKey(public=public_key, private=private_key)
 
 def rsa_encrypt(
-        s: AnyStr,
-        key: AnyStr,
-        encoding: str | None = None,
-        decoding: str | None = None
+    s: AnyStr, key: AnyStr, encoding: str | None = None, decoding: str | None = None
 ) -> AnyStr:
     """Return the ciphertext encrypted with the given public key.
 
@@ -172,11 +168,11 @@ def rsa_encrypt(
     return cinvoke(decoding, s, 'decode', decoding)
 
 def rsa_decrypt(
-        s: AnyStr,
-        key: AnyStr,
-        password: bytes | None = None,
-        encoding: str | None = None,
-        decoding: str | None = None
+    s: AnyStr,
+    key: AnyStr,
+    password: bytes | None = None,
+    encoding: str | None = None,
+    decoding: str | None = None
 ) -> AnyStr:
     """Return the plaintext decrypted with the given private key.
 
@@ -187,15 +183,12 @@ def rsa_decrypt(
     encoding = get_default_encoding(encoding)
     key = (isinstance(key, str) and key.encode(encoding)) or key
     decipher = serialization.load_pem_private_key(key, password, default_backend())
-    s = decipher.decrypt(isinstance(s, str) and s.encode(encoding) or s, padding.OAEP(
-        padding.MGF1(hashes.SHA256()), hashes.SHA256(), None))
+    p = padding.OAEP(padding.MGF1(hashes.SHA256()), hashes.SHA256(), None)
+    s = decipher.decrypt(isinstance(s, str) and s.encode(encoding) or s, p)
     return cinvoke(decoding, s, 'decode', decoding)
 
 def rsa_sign(
-        s: AnyStr,
-        key: AnyStr,
-        password: bytes | None = None,
-        encoding: str | None = None
+    s: AnyStr, key: AnyStr, password: bytes | None = None, encoding: str | None = None
 ) -> AnyStr:
     """Sign a raw sequence using the given private key.
 
@@ -209,7 +202,9 @@ def rsa_sign(
     return signer.sign(s, padding=p, algorithm=hashes.SHA256())
 
 # noinspection PyBroadException
-def rsa_verify(s: AnyStr, signature: AnyStr, key: AnyStr, encoding: str | None = None) -> bool:
+def rsa_verify(
+    s: AnyStr, signature: AnyStr, key: AnyStr, encoding: str | None = None
+) -> bool:
     """Verifies the signature of the data using the given public key.
 
     >>> key = rsa_key()
@@ -221,14 +216,16 @@ def rsa_verify(s: AnyStr, signature: AnyStr, key: AnyStr, encoding: str | None =
     verifier = serialization.load_pem_public_key(key, default_backend())
     try:
         s = isinstance(s, str) and s.encode(encoding) or s
-        signature = (isinstance(signature, str) and signature.encode(encoding)) or signature
+        sig = (isinstance(signature, str) and signature.encode(encoding)) or signature
         p = padding.PSS(padding.MGF1(hashes.SHA256()), padding.PSS.MAX_LENGTH)
-        verifier.verify(signature, s, padding=p, algorithm=hashes.SHA256())
+        verifier.verify(sig, s, padding=p, algorithm=hashes.SHA256())
         return True
     except Exception:
         return False
 
-def base64_encode(s: AnyStr, encoding: str | None = None, decoding: str | None = None) -> AnyStr:
+def base64_encode(
+    s: AnyStr, encoding: str | None = None, decoding: str | None = None
+) -> AnyStr:
     """Encode bytes using the URL- and filesystem-safe Base64 alphabet.
 
     >>> base64_encode('hello world', decoding='utf-8')
@@ -238,7 +235,9 @@ def base64_encode(s: AnyStr, encoding: str | None = None, decoding: str | None =
     s = base64.urlsafe_b64encode(isinstance(s, str) and s.encode(encoding) or s)
     return cinvoke(decoding, s, 'decode', decoding)
 
-def base64_decode(s: AnyStr, encoding: str | None = None, decoding: str | None = None) -> AnyStr:
+def base64_decode(
+    s: AnyStr, encoding: str | None = None, decoding: str | None = None
+) -> AnyStr:
     """Decode bytes using the URL- and filesystem-safe Base64 alphabet.
 
     >>> base64_decode('aGVsbG8gd29ybGQ=', decoding='utf-8')
@@ -248,7 +247,7 @@ def base64_decode(s: AnyStr, encoding: str | None = None, decoding: str | None =
     s = base64.urlsafe_b64decode(isinstance(s, str) and s.encode(encoding) or s)
     return cinvoke(decoding, s, 'decode', decoding)
 
-def url_encode(s: AnyStr, encoding: str | None = None, **kwargs) -> str:
+def url_encode(s: AnyStr, encoding: str | None = None, **kwargs) -> AnyStr:
     """Encode bytes or string based on Uniform Resource Identifier (URI).
 
     >>> url_encode('q=how to say 你好 in English ?')
@@ -256,7 +255,7 @@ def url_encode(s: AnyStr, encoding: str | None = None, **kwargs) -> str:
     """
     return quote(s, encoding=encoding, **kwargs)
 
-def url_decode(s: AnyStr, encoding: str | None = None, **kwargs) -> str:
+def url_decode(s: AnyStr, encoding: str | None = None, **kwargs) -> AnyStr:
     """Decode bytes or string based on Uniform Resource Identifier (URI).
 
     >>> url_decode('q%3Dhow%20to%20say%20%E4%BD%A0%E5%A5%BD%20in%20English%20%3F')

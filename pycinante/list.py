@@ -1,10 +1,9 @@
 """This module provides functionality for a list object accession.
 """
 from __future__ import annotations
-from typing import TypeVar, Callable, Any, Iterable, Sequence
+from pycinante.types import *
 
 __all__ = [
-    'is_equal',
     'arange',
     'unique',
     'listify',
@@ -13,35 +12,7 @@ __all__ = [
     'flatten'
 ]
 
-T = TypeVar('T')
-
-def is_equal(obj: Any, other: Any) -> bool:
-    """Return True if each element of obj and other are equal, False otherwise.
-
-    >>> is_equal(None, None)
-    True
-    >>> is_equal(None, [1, 2, 3, 4])
-    False
-    >>> is_equal([1, 2, 3, 4], [1, 2, 3, 4])
-    True
-    >>> is_equal([1, 2, 3, 4], {1, 2, 3, 4})
-    True
-    >>> is_equal([4, 5, 6], '456')
-    False
-    >>> from collections import OrderedDict
-    >>> is_equal(OrderedDict.fromkeys(iter([1, 2, 3])).keys(), [1, 2, 3])
-    True
-    """
-    if isinstance(obj, Sequence) and isinstance(other, Sequence):
-        if len(obj) != len(other):
-            return False
-        for a, b in zip(obj, other):
-            if a != b:
-                return False
-        return True
-    return obj == other
-
-def listify(obj: ...) -> list[...]:
+def listify(obj: T | Iterable[T]) -> list[T]:
     """Return a list from an object.
 
     >>> listify('https://www.baidu.com')
@@ -57,7 +28,7 @@ def listify(obj: ...) -> list[...]:
         return list(obj)
     return [obj]
 
-def arange(start: int = 0, stop: int = None, step: int = 1) -> list[int]:
+def arange(start: int = 0, stop: int | None = None, step: int = 1) -> list[int]:
     """Return a list of numbers between `start` and `stop` inclusive.
 
     >>> arange(10)
@@ -69,8 +40,9 @@ def arange(start: int = 0, stop: int = None, step: int = 1) -> list[int]:
     """
     return list(range((stop and start) or 0, stop or start, step))
 
-def unique(seq: list[T], key: Callable[[T], bool] = None) -> list[T]:
+def unique(seq: list[T], key: Callable[[T], bool] | None = None) -> list[T]:
     """Removes duplicate elements from a list while preserving the order of the rest.
+    Ref: https://github.com/flaggo/pydu/blob/master/pydu/list.py.
 
     Args:
         seq (list): list to be removed duplicate elements.
@@ -81,8 +53,6 @@ def unique(seq: list[T], key: Callable[[T], bool] = None) -> list[T]:
     [1, 2, 3]
     >>> unique([1, 2, 1, 3, 3, 2, 1, 2, 3])
     [1, 2, 3]
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/list.py
     """
     key = key or (lambda e: e)
     unique_seq, seen = list(), set()
@@ -93,7 +63,9 @@ def unique(seq: list[T], key: Callable[[T], bool] = None) -> list[T]:
         seen.add(key(element))
     return unique_seq
 
-def swap(seq: list[T], i: int | slice | Sequence[int], j: int | slice | Sequence[int]) -> list[T]:
+def swap(
+    seq: list[T], i: int | slice | Iterable[int], j: int | slice | Iterable[int]
+) -> list[T]:
     """Swap the element of `arr[i]` and `arr[j] in the list `arr`.
 
     >>> swap([34, 456, 36, 90, 47], 1, 4)
@@ -124,9 +96,10 @@ def sort(seq: list[T], descending: bool = False) -> list[T]:
     seq.sort(reverse=descending)
     return seq
 
-def flatten(seq: Iterable[Any]) -> list[T]:
+def flatten(seq: Iterable[T]) -> list[T]:
     """Generate each element of the given `seq`. If the element is iterable and is not
-    string, it yields each sub-element of the element recursively.
+    string, it yields each sub-element of the element recursively. Ref: https://github.c-
+    -om/flaggo/pydu/blob/master/pydu/list.py.
 
     >>> flatten([])
     []
@@ -134,13 +107,10 @@ def flatten(seq: Iterable[Any]) -> list[T]:
     [1, 2, 3]
     >>> flatten([0, [1, 2, 3], [4, 5, 6], [7, [8, [9]]]])
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/list.py
     """
     flatten_seq = []
     for element in seq:
-        if (isinstance(element, Iterable) and
-                not isinstance(element, (str, bytes))):
+        if isinstance(element, Iterable) and not isinstance(element, (str, bytes)):
             for sub in flatten(element):
                 flatten_seq.append(sub)
         else:

@@ -30,24 +30,15 @@ __all__ = [
 ]
 
 def is_windows() -> bool:
-    """Return True if the current platform is Windows, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is Windows, False otherwise."""
     return os.name == 'nt'
 
 def is_linux() -> bool:
-    """Return True if the current platform is Linux, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is Linux, False otherwise."""
     return sys.platform.startswith('linux')
 
 def is_posix() -> bool:
-    """Return True if the current platform is POSIX, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is POSIX, False otherwise."""
     return os.name == 'posix'
 
 def is_darwin() -> bool:
@@ -55,51 +46,31 @@ def is_darwin() -> bool:
 
     >>> is_darwin()
     True
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
     """
     return sys.platform.startswith('darwin')
 
 def is_sunos() -> bool:
-    """Return True if the current platform is SunOS, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is SunOS, False otherwise."""
     return sys.platform.startswith('sunos')
 
 def is_smartos() -> bool:
-    """Return True if the current platform is SmartOS, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is SmartOS, False otherwise."""
     return os.uname()[3].startswith('joyent_') if is_sunos() else False
 
 def is_freebsd() -> bool:
-    """Return True if the current platform is FreeBSD, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is FreeBSD, False otherwise."""
     return sys.platform.startswith('freebsd')
 
 def is_netbsd() -> bool:
-    """Return True if the current platform is NetBSD, False otherwise.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is NetBSD, False otherwise."""
     return sys.platform.startswith('netbsd')
 
 def is_openbsd() -> bool:
-    """Return True if the current platform is OpenBSD, False otherwise.
-    
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is OpenBSD, False otherwise."""
     return sys.platform.startswith('openbsd')
 
 def is_aix() -> bool:
-    """Return True if the current platform is Aix, False otherwise.
-    
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/platform.py
-    """
+    """Return True if the current platform is Aix, False otherwise."""
     return sys.platform.startswith('aix')
 
 def interpreter() -> str:
@@ -110,9 +81,11 @@ def interpreter() -> str:
     """
     return sys.executable
 
-def execute(command: str, shell: bool = False, env: dict = None, timeout: int = None) -> Tuple[int, str]:
-    """Run cmd based on `subprocess.Popen` and return the tuple of `(return_code, stdout)`. Note that
-    `stderr` is redirected to `stdout`.
+def execute(
+    command: str, shell: bool = False, env: dict = None, timeout: int = None
+) -> tuple[int, str]:
+    """Run cmd based on `subprocess.Popen` and return the tuple of `(return_code, stdout)`
+    . Note that `stderr` is redirected to `stdout`.
 
     >>> execute('echo "hello world"', shell=True)
     (0, 'hello world\\n')
@@ -121,20 +94,17 @@ def execute(command: str, shell: bool = False, env: dict = None, timeout: int = 
         command (str): A command to be executed on a sub-process.
         shell (bool, optional): If true, the command will be executed through the shell.
         env (dict, optional): Defines the environment variables for the new process.
-        timeout (int, optional): If the process does not terminate after `timeout` seconds,
-        a `TimeoutExpired` exception will be raised.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/cmd.py
+        timeout (int, optional): If the process does not terminate after `timeout` seconds
+        , a `TimeoutExpired` exception will be raised.
     """
-    p = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    p = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, env=env)
     stdout, _ = p.communicate(timeout=timeout)
     return p.poll(), stdout.decode(sys.getdefaultencoding())
 
 def terminate(pid: int) -> None:
-    """Terminate process by given pid. On Windows, using Kernel32.TerminateProcess to kill.
-    On Other platforms, using `os.kill` with `signal.SIGTERM` to kill.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/cmd.py
+    """Terminate process by given pid. On Windows, using Kernel32.TerminateProcess to kill
+    . On Other platforms, using `os.kill` with `signal.SIGTERM` to kill.
     """
     if is_windows():
         import ctypes
@@ -147,12 +117,11 @@ def terminate(pid: int) -> None:
         os.kill(pid, signal.SIGTERM)
 
 @contextmanager
-def environ(**temp_env: Dict[str, str]) -> None:
-    """Context manager for updating one or more environment variables. Preserves the previous environment
-    variable (if available) and recovers when exiting the context manager. If given variable_name=None, it
-    means removing the variable from environment temporarily.
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/environ.py
+def environ(**temp_env: str) -> None:
+    """Context manager for updating one or more environment variables. Preserves the prev-
+    -ious environment variable (if available) and recovers when exiting the context manag-
+    -er. If given variable_name=None, it means removing the variable from environment tem-
+    -porarily.
     """
     original_env = {}
     for key in temp_env:
