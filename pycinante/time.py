@@ -1,6 +1,6 @@
 """This module provides functions to parse and convert time.
 """
-
+from __future__ import annotations
 import time
 from typing import Callable, Tuple, Type, Union, Any
 from pycinante.validator import require_not_none
@@ -23,9 +23,9 @@ class Timer(object):
     Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/dt.py
     """
 
-    def __init__(self, print_func: Callable = None):
+    def __init__(self, print_func: Callable[[str], None] | None = None) -> None:
         self.elapsed = None
-        self.print_func = print_func
+        self.print_func = print_func or print
 
     def __enter__(self) -> None:
         self.start = time.time()

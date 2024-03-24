@@ -1,27 +1,26 @@
 """This module provides functions to access and manipulate files.
 """
-
+from __future__ import annotations
 import glob
 import os
 import re
 import shutil
-import sys
 import archive
 from typing import *
-from pycinante.list import wrap
+from pycinante.list import listify
+from system import get_default_encoding
 
 __all__ = [
     'exists',
-    'is_file',
-    'is_dir',
+    'isfile',
+    'isdir',
     'mkdir',
     'drive',
     'parent',
     'basename',
     'filename',
     'extension',
-    'ensure_extension',
-    'extension_aware',
+    'ext_aware',
     'absolute_path',
     'canonical_path',
     'relative_path',
@@ -32,62 +31,33 @@ __all__ = [
     'copy',
     'move',
     'remove',
-    'read',
-    'write',
-    'append',
-    'clear',
     'PathBuilder',
     'load_pickle',
     'dump_pickle',
-    'load_npy',
-    'dump_npy',
-    'load_pth',
-    'dump_pth',
+    'load_numpy',
+    'dump_numpy',
+    'load_tensor',
+    'dump_tensor',
     'load_json',
     'dump_json',
     'load_yaml',
     'extract_archive'
 ]
 
-def exists(pathname: str) -> bool:
-    """Return True if path refers to an existing path or an open file descriptor.
-    Returns False for broken symbolic links.
+exists = os.path.exists
+isfile = os.path.isfile
+isdir = os.path.isdir
 
-    >>> import tempfile
-    >>> exists(tempfile.mktemp('.txt'))
-    False
-    >>> exists(tempfile.mkstemp('.txt')[1])
-    True
-    """
-    return os.path.exists(pathname)
-
-def is_file(pathname: str) -> bool:
-    """Return True if path is an existing regular file.
-
-    >>> import tempfile
-    >>> is_file(tempfile.mkstemp('.txt')[1])
-    True
-    """
-    return os.path.isfile(pathname)
-
-def is_dir(pathname: str) -> bool:
-    """Return True if path is an existing directory.
-
-    >>> import tempfile
-    >>> is_dir(tempfile.mkdtemp())
-    True
-    """
-    return os.path.isdir(pathname)
-
-def mkdir(pathname: str, parent: bool = False, **kwargs) -> None:
+def mkdir(pathname: str, parent: bool = False, **kwargs) -> str:
     """Create a directory. The argument `exist_ok` default is True.
 
     >>> mkdir('./a/b/c', parent=True)
     >>> assert not exists('./a/b/c')
     >>> shutil.rmtree('./a')
     """
-    pathname = (parent and os.path.dirname(pathname)) or pathname
-    os.makedirs(pathname, exist_ok=kwargs.pop('exist_ok', True), **kwargs)
+    t = (parent and os.path.dirname(pathname)) or pathname
+    os.makedirs(t, exist_ok=kwargs.pop('exist_ok', True), **kwargs)
+    return pathname
 
 def drive(pathname: str) -> str:
     """Return the drive of the pathname, where drive is either a mount point or the
@@ -130,30 +100,22 @@ def extension(pathname: str) -> str:
     """
     return os.path.splitext(pathname)[1]
 
-def ensure_extension(pathname: str, ext: str) -> str:
-    """Ensure that the pathname ends with the given extension.
+def ext_aware(pathname: str, ext: str) -> str:
+    """Automatically append the given extension to the pathname if the pathname
+    not a suffix.
 
-    >>> ensure_extension('/usr/etc/bin/pycinante.json', '.json')
+    >>> ext_aware('/usr/etc/bin/pycinante.json', '.jsoup')
     '/usr/etc/bin/pycinante.json'
-    >>> ensure_extension('/usr/etc/bin/pycinante', '.json')
+    >>> ext_aware('/usr/etc/bin/pycinante', '.json')
     '/usr/etc/bin/pycinante.json'
     """
+    if extension(pathname) is not None:
+        return pathname
     ext = (ext.startswith('.') and ext) or ('.' + ext)
     pathname = (pathname.endswith('.') and pathname[:-1]) or pathname
     if not pathname.endswith(ext):
         pathname = pathname + ext
     return pathname
-
-def extension_aware(pathname: str, ext: str) -> str:
-    """Automatically append the given extension to the pathname if the pathname
-    not a suffix.
-
-    >>> extension_aware('/usr/etc/bin/pycinante.json', '.jsoup')
-    '/usr/etc/bin/pycinante.json'
-    >>> extension_aware('/usr/etc/bin/pycinante', '.json')
-    '/usr/etc/bin/pycinante.json'
-    """
-    return (extension(pathname) and pathname) or ensure_extension(pathname, ext)
 
 def absolute_path(pathname: str) -> str:
     """Return the absolute pathname of the file or directory `pathname`.
@@ -207,13 +169,13 @@ def join(pathname: str, *pathnames: str) -> str:
     """
     return os.path.join(pathname, *pathnames)
 
-def list_files(pathname: str, extensions: Union[str, List[str]] = None, **kwargs) -> List[str]:
+def list_files(pathname: str, exts: str | list[str] | None = None, **kwargs) -> list[str]:
     """Return a list of pathname matching a pathname pattern.
 
-    >>> assert list_files('./', extensions=['.py'])
+    >>> assert list_files('./', exts=['.py'])
     """
     files = []
-    for ext in wrap(extensions or ['*']):
+    for ext in listify(exts or ['*']):
         files.extend(glob.glob(os.path.join(pathname, f'*{ext}'), **kwargs))
     return files
 
@@ -249,56 +211,6 @@ def remove(pathname: str) -> None:
     else:
         os.remove(pathname)
 
-def read(pathname: str, mode: str = 'r', **kwargs) -> AnyStr:
-    """Read data from the file `pathname` and return it.
-
-    >>> import tempfile
-    >>> fd, filename = tempfile.mkstemp('.txt', text=True)
-    >>> assert os.write(fd, b'hello world') == 11
-    >>> read(filename, encoding='utf-8')
-    'hello world'
-    """
-    with open(pathname, mode, **kwargs) as fp:
-        return fp.read()
-
-def write(data: AnyStr, pathname: str, mode: str = 'w', **kwargs) -> None:
-    """Write the data to the file `pathname`.
-
-    >>> import tempfile
-    >>> filepath = tempfile.mktemp('.txt')
-    >>> write('hello world', filepath)
-    >>> read(filepath, encoding='utf-8')
-    'hello world'
-    """
-    with open(pathname, mode, **kwargs) as fp:
-        fp.write(data)
-
-def append(data: Any, pathname: str, mode: str = 'a', **kwargs) -> None:
-    """Append the data to the file `pathname`.
-
-    >>> import tempfile
-    >>> filepath = tempfile.mktemp('.txt')
-    >>> write('hello world, ', filepath)
-    >>> append('welcome to Pycinante!', filepath)
-    >>> read(filepath, encoding='utf-8')
-    'hello world, welcome to Pycinante!'
-    """
-    with open(pathname, mode, **kwargs) as fp:
-        fp.write(data)
-
-def clear(pathname: str) -> None:
-    """Clear all the data on the file `pathname`.
-
-    >>> import tempfile
-    >>> filepath = tempfile.mktemp('.txt')
-    >>> write('hello world, ', filepath)
-    >>> clear(filepath)
-    >>> read(filepath, encoding='utf-8')
-    ''
-    """
-    with open(pathname, 'wb') as fp:
-        fp.truncate()
-
 class PathBuilder(object):
     """A pathname builder for easily constructing a pathname by the operation `/` and `+`.
 
@@ -307,8 +219,8 @@ class PathBuilder(object):
     './a/b/c/d/e/f.json'
     """
 
-    def __init__(self, *pathname: Tuple[str, ...], mkdir: bool = True):
-        self.path = os.path.join(*(pathname or ('.',)))
+    def __init__(self, *pathnames, mkdir: bool = True):
+        self.path = str(os.path.join(*(pathnames or ('.',))))
         self.mkdir = mkdir
         if self.mkdir:
             os.makedirs(self.path, exist_ok=True)
@@ -317,15 +229,49 @@ class PathBuilder(object):
         """Append a sub-pathname to the original pathname and return a new pathname
         instance with the added sub-pathname.
         """
-        return PathBuilder(os.path.join(self.path, pathname), mkdir=self.mkdir)
+        return PathBuilder(join(self.path, pathname), mkdir=self.mkdir)
 
     def __add__(self, basename: str) -> str:
         """Append a basename to the original pathname and return the full pathname string
         after adding the basename.
         """
-        return os.path.join(self.path, basename)
+        return join(self.path, basename)
 
-def load_pickle(pathname: str, **kwargs) -> Any:
+class text_editor(object):
+    def __init__(self, pathname: str, mode='r+', encoding: str = 'utf-8'):
+        self.pathname = pathname
+        self.mode = mode
+        self.encoding = encoding
+
+        # TODO:
+        raise NotImplementedError('not implemented')
+
+    def clear(self) -> int:
+        return self.fp.truncate()
+
+    def write(self, s: AnyStr) -> int:
+        return self.fp.write(s)
+
+    def writeline(self, s: AnyStr) -> int:
+        text = s if s.endswith(os.linesep) else s + os.linesep
+        return self.fp.write(text)
+
+    def read(self) -> AnyStr:
+        return self.fp.read()
+
+    def readline(self) -> AnyStr:
+        return self.fp.readline()
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        return self.fp.seek(offset, whence)
+
+    def __enter__(self) -> None:
+        self.fp = open(self.pathname, mode=self.mode, encoding=self.encoding)
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.fp.close()
+
+def load_pickle(pathname: str, ext: str = '.pkl', **kwargs) -> ...:
     """Read a pickled object representation from the `.pkl` file.
 
     >>> dump_pickle({'name': 'Pycinante'}, 'test')
@@ -334,10 +280,10 @@ def load_pickle(pathname: str, **kwargs) -> Any:
     >>> remove('test.pkl')
     """
     import pickle
-    with open(extension_aware(pathname, '.pkl'), 'rb') as fp:
+    with open(ext_aware(pathname, ext), 'rb') as fp:
         return pickle.load(fp, **kwargs)
 
-def dump_pickle(obj: Any, pathname: str, **kwargs) -> None:
+def dump_pickle(obj: ..., pathname: str, ext: str = '.pkl', **kwargs) -> None:
     """Write a pickled representation of obj to the `.pkl` file.
 
     >>> dump_pickle({'name': 'Pycinante'}, 'test')
@@ -346,62 +292,62 @@ def dump_pickle(obj: Any, pathname: str, **kwargs) -> None:
     >>> remove('test.pkl')
     """
     import pickle
-    with open(extension_aware(pathname, '.pkl'), 'wb') as fp:
+    with open(ext_aware(pathname, ext), 'wb') as fp:
         pickle.dump(obj, fp, **kwargs)
 
 # noinspection PyUnresolvedReferences
-def load_npy(pathname: str, **kwargs) -> 'np.ndarray':
+def load_numpy(pathname: str, ext: str = '.npy', **kwargs) -> 'np.ndarray':
     """Load arrays or pickled objects from `.npz` or pickled files.
 
     >>> import numpy as np
-    >>> dump_npy(np.array([7, 8, 9]), 'test')
-    >>> load_npy('test')
+    >>> dump_numpy(np.array([7, 8, 9]), 'test')
+    >>> load_numpy('test')
     array([7, 8, 9])
     >>> remove('test.npy')
     """
     import numpy as np
-    return np.load(extension_aware(pathname, '.npy'), **kwargs)
+    return np.load(ext_aware(pathname, ext), **kwargs)
 
 # noinspection PyUnresolvedReferences
-def dump_npy(obj: 'np.ndarray', pathname: str, **kwargs) -> None:
+def dump_numpy(obj: 'np.ndarray', pathname: str, ext: str = '.npy', **kwargs) -> None:
     """Save an array to a binary file in NumPy ``.npz`` format.
 
     >>> import numpy as np
-    >>> dump_npy(np.array([7, 8, 9]), 'test')
-    >>> load_npy('test')
+    >>> dump_numpy(np.array([7, 8, 9]), 'test')
+    >>> load_numpy('test')
     array([7, 8, 9])
     >>> remove('test.npy')
     """
     import numpy as np
-    np.save(extension_aware(pathname, '.npy'), obj, **kwargs)
+    np.save(ext_aware(pathname, ext), obj, **kwargs)
 
-# noinspection PyPackageRequirements
-def load_pth(pathname: str, **kwargs) -> Any:
+# noinspection PyPackageRequirements, PyUnresolvedReferences
+def load_tensor(pathname: str, ext: str = '.pth', **kwargs) -> 'torch.Tensor':
     """Loads an object saved with `torch.save` from a `.pth` file.
 
     >>> import torch
-    >>> dump_pth(torch.tensor([7, 8, 9]), 'test')
-    >>> load_pth('test')
+    >>> dump_tensor(torch.tensor([7, 8, 9]), 'test')
+    >>> load_tensor('test')
     tensor([7, 8, 9])
     >>> remove('test.pth')
     """
     import torch
-    return torch.load(extension_aware(pathname, '.pth'), **kwargs)
+    return torch.load(ext_aware(pathname, ext), **kwargs)
 
-# noinspection PyPackageRequirements
-def dump_pth(obj: Any, pathname: str, **kwargs) -> None:
+# noinspection PyPackageRequirements,PyUnresolvedReferences
+def dump_tensor(obj: 'torch.Tensor', pathname: str, ext: str = '.pth', **kwargs) -> None:
     """Saves an object to a `.pth` disk file.
 
     >>> import torch
-    >>> dump_pth(torch.tensor([7, 8, 9]), 'test')
-    >>> load_pth('test')
+    >>> dump_tensor(torch.tensor([7, 8, 9]), 'test')
+    >>> load_tensor('test')
     tensor([7, 8, 9])
     >>> remove('test.pth')
     """
     import torch
-    torch.save(obj, extension_aware(pathname, '.pth'), **kwargs)
+    torch.save(obj, ext_aware(pathname, ext), **kwargs)
 
-def load_json(pathname: str, encoding: str = None, **kwargs) -> Any:
+def load_json(pathname: str, ext: str = '.json', **kwargs) -> ...:
     """Deserialize a file-like object containing a JSON document to a Python object.
 
     >>> dump_json({'name': 'Pycinante'}, 'test')
@@ -410,10 +356,11 @@ def load_json(pathname: str, encoding: str = None, **kwargs) -> Any:
     >>> remove('test.json')
     """
     import json
-    with open(extension_aware(pathname, '.json'), 'r', encoding=encoding or sys.getdefaultencoding()) as fp:
+    encoding = get_default_encoding(kwargs.pop('encoding', None))
+    with open(ext_aware(pathname, ext), 'r', encoding=encoding) as fp:
         return json.load(fp, **kwargs)
 
-def dump_json(obj: Any, pathname: str, encoding: str = None, pretty: int = None, **kwargs) -> None:
+def dump_json(obj: ..., pathname: str, ext: str = '.json', **kwargs) -> None:
     """Serialize the Python object `obj` into a json file.
 
     >>> dump_json({'name': 'Pycinante'}, 'test')
@@ -422,14 +369,21 @@ def dump_json(obj: Any, pathname: str, encoding: str = None, pretty: int = None,
     >>> remove('test.json')
     """
     import json
-    with open(extension_aware(pathname, '.json'), 'w', encoding=encoding or sys.getdefaultencoding()) as fp:
-        json.dump(obj, fp, indent=kwargs.pop('indent', pretty), **kwargs)
+    encoding = get_default_encoding(kwargs.pop('encoding', None))
+    with open(ext_aware(pathname, ext), 'w', encoding=encoding) as fp:
+        json.dump(obj, fp, **kwargs)
 
 # noinspection PyUnresolvedReferences,PyPackageRequirements
-def load_yaml(pathname: str, loader: 'yaml.Loader' = None, encoding: str = None) -> dict:
+def load_yaml(
+        pathname: str,
+        ext: str = '.yaml',
+        loader: Optional['yaml.Loader'] = None,
+        encoding: str | None = None
+) -> dict:
     """Parse the YAML document in a file and produce the corresponding Python object."""
     import yaml
-    with open(extension_aware(pathname, '.yml'), 'r', encoding=encoding or sys.getdefaultencoding()) as fp:
+    pathname = ext_aware(pathname, ext)
+    with open(pathname, 'r', encoding=get_default_encoding(encoding)) as fp:
         return (loader or yaml.safe_load)(fp)
 
 def extract_archive(src: str, dest: str) -> None:

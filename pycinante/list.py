@@ -1,13 +1,13 @@
 """This module provides functionality for a list object accession.
 """
-
-from typing import TypeVar, List, Callable, Union, Collection, Iterator, Any, Iterable
+from __future__ import annotations
+from typing import TypeVar, Callable, Any, Iterable, Sequence
 
 __all__ = [
     'is_equal',
     'arange',
     'unique',
-    'wrap',
+    'listify',
     'swap',
     'sort',
     'flatten'
@@ -15,7 +15,7 @@ __all__ = [
 
 T = TypeVar('T')
 
-def is_equal(obj: Iterable, other: Iterable) -> bool:
+def is_equal(obj: Any, other: Any) -> bool:
     """Return True if each element of obj and other are equal, False otherwise.
 
     >>> is_equal(None, None)
@@ -32,7 +32,7 @@ def is_equal(obj: Iterable, other: Iterable) -> bool:
     >>> is_equal(OrderedDict.fromkeys(iter([1, 2, 3])).keys(), [1, 2, 3])
     True
     """
-    if isinstance(obj, Iterable) and isinstance(other, Iterable):
+    if isinstance(obj, Sequence) and isinstance(other, Sequence):
         if len(obj) != len(other):
             return False
         for a, b in zip(obj, other):
@@ -41,7 +41,23 @@ def is_equal(obj: Iterable, other: Iterable) -> bool:
         return True
     return obj == other
 
-def arange(start: int = 0, stop: int = None, step: int = 1) -> List[int]:
+def listify(obj: ...) -> list[...]:
+    """Return a list from an object.
+
+    >>> listify('https://www.baidu.com')
+    ['https://www.baidu.com']
+    >>> listify([1, 2, 3])
+    [1, 2, 3]
+    >>> listify((1, 2, 3, 2, 1, 2))
+    [1, 2, 3, 2, 1, 2]
+    >>> listify(iter({4, 5, 6}))
+    [4, 5, 6]
+    """
+    if isinstance(obj, Iterable) and not isinstance(obj, str):
+        return list(obj)
+    return [obj]
+
+def arange(start: int = 0, stop: int = None, step: int = 1) -> list[int]:
     """Return a list of numbers between `start` and `stop` inclusive.
 
     >>> arange(10)
@@ -53,11 +69,11 @@ def arange(start: int = 0, stop: int = None, step: int = 1) -> List[int]:
     """
     return list(range((stop and start) or 0, stop or start, step))
 
-def unique(seq: List[T], key: Callable[[T], bool] = None) -> List[T]:
+def unique(seq: list[T], key: Callable[[T], bool] = None) -> list[T]:
     """Removes duplicate elements from a list while preserving the order of the rest.
 
     Args:
-        seq (List): list to be removed duplicate elements.
+        seq (list): list to be removed duplicate elements.
         key (Callable): the value of the optional `key` parameter should be a function
         that takes a single argument and returns a key to test the uniqueness.
 
@@ -77,36 +93,26 @@ def unique(seq: List[T], key: Callable[[T], bool] = None) -> List[T]:
         seen.add(key(element))
     return unique_seq
 
-def wrap(obj: Union[T, List[T]]) -> List[T]:
-    """Use list to wrap the object `obj`, and return it directly if the object is of type
-    list; if it is a tuple or iterator, it's converted to list.
-
-    >>> wrap('https://www.baidu.com')
-    ['https://www.baidu.com']
-    >>> wrap([1, 2, 3])
-    [1, 2, 3]
-    >>> wrap((1, 2, 3, 2, 1, 2))
-    [1, 2, 3, 2, 1, 2]
-    >>> wrap(iter({4, 5, 6}))
-    [4, 5, 6]
-    """
-    if isinstance(obj, List):
-        return obj
-    if isinstance(obj, (Collection, Iterator)) and not isinstance(obj, (str, bytes)):
-        return list(obj)
-    return [obj]
-
-def swap(seq: List[T], i: int, j: int) -> None:
+def swap(seq: list[T], i: int | slice | Sequence[int], j: int | slice | Sequence[int]) -> list[T]:
     """Swap the element of `arr[i]` and `arr[j] in the list `arr`.
 
-    >>> seq = [34, 456, 36, 90, 47]
-    >>> swap(seq, 1, 4)
-    >>> seq
+    >>> swap([34, 456, 36, 90, 47], 1, 4)
     [34, 47, 36, 90, 456]
+    >>> swap([34, 47, 36, 90, 456], slice(0, 2), slice(2, 4))
+    [36, 90, 34, 47, 456]
+    >>> swap([43, 68, 25, 99, 23, 83], [1, 2, 3], [0, 5, 4])
+    [68, 43, 83, 23, 99, 25]
     """
-    seq[i], seq[j] = seq[j], seq[i]
+    assert isinstance(i, type(j)), 'the type of `i` and `j` must be the same'
+    if isinstance(i, (int, slice)):
+        seq[i], seq[j] = seq[j], seq[i]
+        return seq
+    assert isinstance(i, Sequence), f'the type of {type(i)} is not supported'
+    for m, n in zip(i, j):
+        seq[m], seq[n] = seq[n], seq[m]
+    return seq
 
-def sort(seq: List[T], descending: bool = False) -> List[T]:
+def sort(seq: list[T], descending: bool = False) -> list[T]:
     """Sort the list in-place in ascending or descending order and return itself.
 
     >>> arr = [34, 456, 36, 90, 47, 34, 55, 999, 323]
@@ -118,7 +124,7 @@ def sort(seq: List[T], descending: bool = False) -> List[T]:
     seq.sort(reverse=descending)
     return seq
 
-def flatten(seq: List[Any]) -> List[T]:
+def flatten(seq: Iterable[Any]) -> list[T]:
     """Generate each element of the given `seq`. If the element is iterable and is not
     string, it yields each sub-element of the element recursively.
 
@@ -133,7 +139,8 @@ def flatten(seq: List[Any]) -> List[T]:
     """
     flatten_seq = []
     for element in seq:
-        if isinstance(element, Iterable) and not isinstance(element, (str, bytes)):
+        if (isinstance(element, Iterable) and
+                not isinstance(element, (str, bytes))):
             for sub in flatten(element):
                 flatten_seq.append(sub)
         else:

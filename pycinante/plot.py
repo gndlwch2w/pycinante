@@ -1,6 +1,6 @@
 """This module provides functions to plotting convincingly.
 """
-
+from __future__ import annotations
 from matplotlib import pyplot as plt
 from matplotlib_inline import backend_inline
 from typing import List, Union, Tuple
@@ -8,22 +8,75 @@ from pycinante.list import wrap
 from pycinante.system import is_on_ipython
 from pycinante.validator import check_condition
 
+try:
+    from IPython import display
+except ImportError:
+    pass
+
 __all__ = [
     'Animator'
 ]
 
-def set_axes(axes: plt.Axes, xlabel: str, ylabel: str, xlim: Union[int, Tuple[int, int]],
-             ylim: Union[int, Tuple[int, int]], xscale: str, yscale: str, legend: List[str]) -> None:
-    """Set the axes for matplotlib.
+def use_svg_display() -> None:
+    """Use the svg format to display a plot in Python."""
+    backend_inline.set_matplotlib_formats('svg')
 
-    Ref: [1] https://pypi.org/project/d2l/
-    """
-    axes.set_xlabel(xlabel), axes.set_ylabel(ylabel)
-    axes.set_xscale(xscale), axes.set_yscale(yscale)
-    axes.set_xlim(*wrap(xlim)), axes.set_ylim(*wrap(ylim))
+def use_chinese_display() -> None:
+    """Set matplotlib to support Chinese font display."""
+    plt.rcParams['font.sans-serif'] = ['SimSun', 'Songti SC']
+    plt.rcParams['axes.unicode_minus'] = False
+
+def set_figsize(figsize: tuple[float, float] = (3.5, 2.5)) -> None:
+    """Set the figure size for matplotlib."""
+    plt.rcParams['figure.figsize'] = figsize
+
+def set_axes(axes: plt.Axes,
+             xlabel: str,
+             ylabel: str,
+             xlim: Union[int, Tuple[int, int]],
+             ylim: Union[int, Tuple[int, int]],
+             xscale: str,
+             yscale: str,
+             legend: List[str]) -> None:
+    """Set the axes for matplotlib."""
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_xscale(xscale)
+    axes.set_yscale(yscale)
+    axes.set_xlim(*wrap(xlim))
+    axes.set_ylim(*wrap(ylim))
     if legend:
         axes.legend(legend)
     axes.grid()
+
+def plot(X, Y=None, xlabel=None, ylabel=None, legend=None, xlim=None,
+         ylim=None, xscale='linear', yscale='linear',
+         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):
+    """Plot data points."""
+    legend = legend or []
+    set_figsize(figsize)
+    axes = axes if axes else plt.gca()
+
+    def has_one_axis(X):
+        """Return True if `X` (tensor or list) has 1 axis"""
+        return (hasattr(X, "ndim") and X.ndim == 1 or isinstance(X, list)
+                and not hasattr(X[0], "__len__"))
+
+    if has_one_axis(X):
+        X = [X]
+    if Y is None:
+        X, Y = [[]] * len(X), X
+    elif has_one_axis(Y):
+        Y = [Y]
+    if len(X) != len(Y):
+        X = X * len(Y)
+    axes.cla()
+    for x, y, fmt in zip(X, Y, fmts):
+        if len(x):
+            axes.plot(x, y, fmt)
+        else:
+            axes.plot(y, fmt)
+    set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
 
 class Animator:
     """For plotting data in animation.
@@ -47,7 +100,6 @@ class Animator:
 
     def add(self, x: Union[float, List[float]], y: Union[float, List[float]]) -> None:
         """Add multiple data points into the figure."""
-        from IPython import display
         y = (not hasattr(y, '__len__') and [y]) or y
         n = len(y)
         x = (not hasattr(x, '__len__') and [x] * n) or x

@@ -1,20 +1,17 @@
 """This module provides functions to validate a given values.
 """
-
-import re
-import numpy as np
+from __future__ import annotations
 from functools import wraps
-from typing import *
+import math
+import re
+import os
+from typing import TypeVar, Union, Sized, Callable, Optional, Type, Any
 
 T = TypeVar('T')
 U = TypeVar('U')
 Number = Union[int, float]
 
 __all__ = [
-    'is_equal',
-    'is_empty',
-    'is_not_empty',
-    'where',
     'require_not_empty',
     'require_gt',
     'require_gt_0',
@@ -31,6 +28,9 @@ __all__ = [
     'require_not_empty_else',
     'require_type',
     'require_optional_type',
+    'require_exists',
+    'require_a_file',
+    'require_a_directory',
     'check_condition',
     'check_positional_arguments',
     'check_not_empty',
@@ -51,121 +51,207 @@ __all__ = [
     'check_optional_type'
 ]
 
-def is_equal(obj: Any, other: Any, epsilon=1e-6) -> bool:
-    """Return whether the object `obj` is equal to the `other`."""
-    if isinstance(obj, (int, float)) and isinstance(other, (int, float)):
-        return np.abs(obj - other) < epsilon
-    return obj == other
-
-def is_empty(obj: Any) -> bool:
+def is_empty(obj: ...) -> bool:
     """Return whether the object `obj` is empty."""
     if obj is None:
         return True
     if isinstance(obj, Sized):
         return len(obj) == 0
-    if getattr(obj, 'is_empty', None) is not None:
-        return getattr(obj, 'is_empty')()
+    if getattr(obj, '__empty__', None) is not None:
+        return getattr(obj, '__empty__')()
     return False
-
-def is_not_empty(obj: Any) -> bool:
-    """Return whether the object `obj` is not empty."""
-    return not is_empty(obj)
 
 def where(condition: bool, obj: T, other: U) -> Union[T, U]:
     """Return the first object if the condition is True otherwise return the second."""
     return obj if condition else other
 
-def require_not_empty(obj: T, msg: str = None) -> T:
+def require_not_empty(
+        obj: T,
+        checker: Callable[[...], bool] | None = None,
+        msg: str | None = None
+) -> T:
     """Check whether the object `obj` is not empty."""
-    msg = require_not_none_else(msg, 'the obj must be not empty')
-    assert is_not_empty(obj), msg
+    checker = checker or (lambda e: not is_empty(e))
+    assert checker(obj), msg or 'the obj must be not empty'
     return obj
 
-def require_gt(val: Number, min_val: Number, msg: str = None) -> Number:
+def require_not_empty_else(
+        obj: T,
+        other: U,
+        checker: Callable[[...], bool] | None = None
+) -> T | U:
+    """Return the `obj` if the `obj` is not empty otherwise return the `other`."""
+    checker = checker or (lambda e: not is_empty(e))
+    return obj if not checker(obj) else other
+
+def require_gt(val: Number, min_val: Number, msg: str | None = None) -> Number:
     """Check whether the `val` is greater than the value `min_val`."""
-    msg = require_not_none_else(msg, f'the value {val} must be greater than {min_val}')
-    assert val > min_val, msg
+    assert val > min_val, msg or f'the value {val} must be greater than {min_val}'
     return val
 
-def require_gt_0(val: Number, msg: str = None) -> Number:
+def require_gt_0(val: Number, msg: str | None = None) -> Number:
     """Check whether the `val` is greater than the value 0."""
-    msg = require_not_none_else(msg, f'the value {val} must be greater than 0')
-    assert val > 0., msg
+    assert val > 0, msg or f'the value {val} must be greater than 0'
     return val
 
-def require_ge(val: Number, min_val: Number, msg: str = None) -> Number:
+def require_ge(val: Number, min_val: Number, epsilon: float = 1e-6, msg: str | None = None) -> Number:
     """Check whether the `val` is greater than or equal to the value `min_val`."""
-    msg = require_not_none_else(msg, f'the value {val} must be greater than or equal to {min_val}')
-    assert val > min_val or is_equal(val, min_val), msg
+    msg = msg or f'the value {val} must be greater than or equal to {min_val}'
+    assert val > min_val or abs(val - min_val) < epsilon, msg
     return val
 
-def require_lt(val: Number, max_val: Number, msg: str = None) -> Number:
+def require_lt(val: Number, max_val: Number, msg: str | None = None) -> Number:
     """Check whether the `val` is less than the value `max_val`."""
-    msg = require_not_none_else(msg, f'the value {val} must be less than {max_val}')
-    assert val < max_val, msg
+    assert val < max_val, msg or f'the value {val} must be less than {max_val}'
     return val
 
-def require_le(val: Number, max_val: Number, msg: str = None) -> Number:
+def require_le(val: Number, max_val: Number, epsilon: float = 1e-6, msg: str | None = None) -> Number:
     """Check whether the `val` is less than or equal to the value `max_val`."""
-    msg = require_not_none_else(msg, f'the value {val} must be less than or equal to {max_val}')
-    assert val < max_val or is_equal(val, max_val), msg
+    msg = msg or f'the value {val} must be less than or equal to {max_val}'
+    assert val < max_val or abs(val - max_val) < epsilon, msg
     return val
 
-def require_eq(val: Number, eq_val: Number, msg: str = None) -> Number:
+def require_eq(val: Number, eq_val: Number, epsilon: float = 1e-6, msg: str | None = None) -> Number:
     """Check whether the `val` is equal to the value `eq_val`."""
-    msg = require_not_none_else(msg, f'the value {val} must be equal to {eq_val}')
-    assert is_equal(val, eq_val), msg
+    assert abs(val - eq_val) < epsilon, msg or f'the value {val} must be equal to {eq_val}'
     return val
 
-def require_between(val: Number, min_val: Number = -np.inf, max_val: Number = np.inf, msg: str = None) -> Number:
+def require_between(
+        val: Number,
+        min_val: Number = -math.inf,
+        max_val: Number = math.inf,
+        epsilon: float = 1e-6,
+        msg: str | None = None
+) -> Number:
     """Check whether the value `val` is in the range `min_val` (included) and `max_val` (included)."""
-    msg = require_not_none_else(msg, f'the value {val} must be between {min_val} and {max_val}')
-    assert min_val < val < max_val or is_equal(val, min_val) or is_equal(val, max_val), msg
+    msg = msg or f'the value {val} must be between {min_val} and {max_val}'
+    assert (min_val < val < max_val or abs(val - min_val) < epsilon or
+            abs(val - max_val) < epsilon), msg
     return val
 
-def require_probability(val: Number, msg: str = None) -> Number:
+def require_probability(val: Number, msg: str | None = None) -> Number:
     """Check whether the value `val` is between 0. and 1."""
-    msg = require_not_none_else(msg, f'the probability value {val} must be between 0. and 1.')
-    return require_between(val, 0, 1, msg)
+    msg = msg or f'the probability value {val} must be between 0. and 1.'
+    return require_between(val, 0, 1, msg=msg)
 
-def require_regex(val: str, pattern: str, msg: str = None) -> str:
+def require_regex(val: str, pattern: str, msg: str | None = None) -> str:
     """Check whether the string `val` matches the regular expression."""
-    msg = require_not_none_else(msg, f'the string {val} is not matching the regular expression {pattern}')
+    msg = msg or f'the string {val} is not matching the regular expression {pattern}'
     assert re.match(pattern, val), msg
     return val
 
-def require_variable_name(val: str, msg: str = None) -> str:
+def require_variable_name(val: str, msg: str | None = None) -> str:
     """Check whether the variable name `val` is a valid variable name."""
-    msg = require_not_none_else(msg, f'the variable {val} is not a valid variable name')
+    msg = msg or f'the variable {val} is not a valid variable name'
     return require_regex(val, r'^[a-zA-Z_][a-zA-Z0-9_]*$', msg)
 
-def require_not_none(obj: T, msg: str = None) -> T:
+def require_not_none(obj: T, msg: str | None = None) -> T:
     """Check whether the `obj` is not none."""
-    msg = require_not_none_else(msg, f'the obj must be not None')
-    assert obj is not None, msg
+    assert obj is not None, msg or f'the obj must be not None'
     return obj
 
-def require_not_none_else(obj: T, other: U) -> Union[T, U]:
+def require_not_none_else(obj: T, other: U) -> T | U:
     """Return the `obj` if the `obj` is not None otherwise return the `other`."""
     return obj if obj is not None else other
 
-def require_not_empty_else(obj: T, other: U) -> Union[T, U]:
-    """Return the `obj` if the `obj` is not empty otherwise return the `other`."""
-    return obj if is_not_empty(obj) else other
+# validating for object types
 
-def require_type(obj: T, types: Union[Type, Tuple[Type]], msg: str = None) -> T:
+def is_type(obj: ..., types: Type | tuple[Type]) -> bool:
     """Check whether the `obj` is an instance of the `types` type."""
-    msg = require_not_none_else(msg, f'the type of `obj` must be the type {types}')
-    assert isinstance(obj, types), msg
-    return obj
+    return isinstance(obj, types)
 
-def require_optional_type(obj: Optional[T], types: Union[Type, Tuple[Type]], msg: str = None) -> Optional[T]:
+def is_optional_type(obj: ..., types: Type | tuple[Type]) -> bool:
     """Check whether the `obj` is an instance of the `types` type or None."""
-    msg = require_not_none_else(msg, f'the type of `obj` must be the type {types} or None')
-    assert obj is None or isinstance(obj, types), msg
+    return obj is None or isinstance(obj, types)
+
+def is_none(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the none type."""
+    return obj is None
+
+def require_none(obj: T, msg: str | None = None) -> T:
+    """Check whether the `obj` is an instance of the none type."""
+    return obj is None
+
+def is_integer(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the int type."""
+    return isinstance(obj, int)
+
+def is_float(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the float type."""
+    return isinstance(obj, float)
+
+def is_number(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the number type."""
+    return isinstance(obj, (int, float))
+
+def is_string(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the string type."""
+    return isinstance(obj, (str, bytes))
+
+def is_boolean(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the boolean type."""
+    return isinstance(obj, bool)
+
+def is_dictionary(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the dictionary type."""
+    return isinstance(obj, dict)
+
+def is_tuple(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the tuple type."""
+    return isinstance(obj, tuple)
+
+def is_list(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the list type."""
+    return isinstance(obj, list)
+
+def is_array(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the array type."""
+    return isinstance(obj, (list, tuple, set))
+
+def is_set(obj: ...) -> bool:
+    """Check whether the `obj` is an instance of the set type."""
+    return isinstance(obj, set)
+
+def require_type(obj: T, types: Type | tuple[Type], msg: str | None = None) -> T:
+    """Check whether the `obj` is an instance of the `types` type."""
+    assert is_type(obj, types), msg or f'the type of `obj` must be the type {types}'
     return obj
 
-def check_condition(condition: Union[bool, Callable[[], None]], msg: str = None) -> Callable:
+def require_optional_type(
+        obj: Optional[T],
+        types: Type | tuple[Type],
+        msg: str | None = None
+) -> Optional[T]:
+    """Check whether the `obj` is an instance of the `types` type or None."""
+    assert is_optional_type, msg or f'the type of `obj` must be the type {types} or None'
+    return obj
+
+# validating for file
+
+def require_exists(pathname: str, msg: str | None = None) -> str:
+    """Check whether the `pathname` refers to an existing path."""
+    msg = msg or f'the path {pathname} must refer to an existing path'
+    assert os.path.exists(pathname), msg
+    return pathname
+
+def require_a_file(pathname: str, msg: str | None = None) -> str:
+    """Check whether the `pathname` is an existing regular file."""
+    msg = msg or f'the path {pathname} must be an existing regular file'
+    assert os.path.isfile(pathname), msg
+    return pathname
+
+def require_a_directory(pathname: str, msg: str | None = None) -> str:
+    """Check whether the `pathname` is an existing directory."""
+    msg = msg or f'the path {pathname} must be an existing directory'
+    assert os.path.isdir(pathname), msg
+    return pathname
+
+# annotation checker
+
+def check_condition(
+        condition: Union[bool, Callable[[], bool]],
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the condition is supported.
 
     Args:
@@ -174,17 +260,20 @@ def check_condition(condition: Union[bool, Callable[[], None]], msg: str = None)
     """
     if isinstance(condition, Callable):
         condition = condition()
-    msg = msg or 'the condition is not supported'
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            assert condition, msg
+        def wrapper(*args, **kwargs) -> ...:
+            assert condition, msg or 'the condition is not supported'
             return func(*args, **kwargs)
         return wrapper
     return decorator
 
-def check_positional_arguments(validator: Callable, index: Union[int, List[int], Callable], **params) -> Callable:
+def check_positional_arguments(
+        validator: Callable,
+        index: int | list[int] | Callable,
+        params: dict[str, ...] | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether an argument at specified position on the function list is valid.
 
     Args:
@@ -200,8 +289,8 @@ def check_positional_arguments(validator: Callable, index: Union[int, List[int],
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            return func(*[validator(args[i], **params) for i in indexes], **kwargs)
+        def wrapper(*args, **kwargs) -> ...:
+            return func(*[validator(args[i], **(params or {})) for i in indexes], **kwargs)
         return wrapper
 
     if isinstance(index, Callable):
@@ -209,66 +298,127 @@ def check_positional_arguments(validator: Callable, index: Union[int, List[int],
         return decorator(index)
     return decorator
 
-def check_not_empty(index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_not_empty(
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the arguments args[index] is not empty."""
-    return check_positional_arguments(require_not_empty, index, msg=msg)
+    return check_positional_arguments(require_not_empty, index, {'msg': msg})
 
-def check_gt(min_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_gt(
+        min_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is greater than the value `min_val`."""
-    return check_positional_arguments(require_gt, index, min_val=min_val, msg=msg)
+    return check_positional_arguments(require_gt, index, {'min_val': min_val, 'msg': msg})
 
-def check_gt_0(index: Union[int, List[int]] = None, msg: str = None) -> Callable:
+def check_gt_0(
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the argument args[index] is greater than the value 0."""
-    return check_positional_arguments(require_gt_0, index, msg=msg)
+    return check_positional_arguments(require_gt_0, index, {'msg': msg})
 
-def check_ge(min_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_ge(
+        min_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is greater than or equal to the value `min_val`."""
-    return check_positional_arguments(require_ge, index, min_val=min_val, msg=msg)
+    return check_positional_arguments(require_ge, index, {'min_val': min_val, 'msg': msg})
 
-def check_lt(max_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_lt(
+        max_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is less than the value `max_val`."""
-    return check_positional_arguments(require_lt, index, max_val=max_val, msg=msg)
+    return check_positional_arguments(require_lt, index, {'max_val': max_val, 'msg': msg})
 
-def check_le(max_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_le(
+        max_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is less than or equal to the value `max_val`."""
-    return check_positional_arguments(require_le, index, max_val=max_val, msg=msg)
+    return check_positional_arguments(require_le, index, {'max_val': max_val, 'msg': msg})
 
-def check_eq(eq_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_eq(
+        eq_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is equal to the value `eq_val`."""
-    return check_positional_arguments(require_eq, index, eq_val=eq_val, msg=msg)
+    return check_positional_arguments(require_eq, index, {'eq_val': eq_val, 'msg': msg})
 
-def check_between(min_val: int, max_val: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_between(
+        min_val: int,
+        max_val: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the value args[index] is in the range `min_val` and `max_val`."""
-    return check_positional_arguments(require_between, index, min_val=min_val, max_val=max_val, msg=msg)
+    params = {'min_val': min_val, 'max_val': max_val, 'msg': msg}
+    return check_positional_arguments(require_between, index, params)
 
-def check_probability(index: Union[int, List[int]] = None, msg: str = None) -> Callable:
+def check_probability(
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the argument args[index] is between 0. and 1."""
-    return check_positional_arguments(require_probability, index, msg=msg)
+    return check_positional_arguments(require_probability, index, {'msg': msg})
 
-def check_regex(pattern: str, index: Union[int, List[int]] = None, msg: str = None) -> Callable:
+def check_regex(
+        pattern: str,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the string args[index] matches the regular expression."""
-    return check_positional_arguments(require_regex, index, pattern=pattern, msg=msg)
+    return check_positional_arguments(require_regex, index, {'pattern': pattern, 'msg': msg})
 
-def check_variable_name(index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_variable_name(
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the arguments args[index] is a valid variable name."""
-    return check_positional_arguments(require_variable_name, index, msg=msg)
+    return check_positional_arguments(require_variable_name, index, {'msg': msg})
 
-def check_not_none(index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_not_none(
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the argument args[index] is not None."""
-    return check_positional_arguments(require_not_none, index, msg=msg)
+    return check_positional_arguments(require_not_none, index, {'msg': msg})
 
-def check_not_none_else(other: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_not_none_else(
+        other: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Return the args[index] if the args[index] is not None otherwise return the `other`."""
-    return check_positional_arguments(require_not_none_else, index, other=other, msg=msg)
+    return check_positional_arguments(require_not_none_else, index, {'other': other, 'msg': msg})
 
-def check_not_empty_else(other: int, index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_not_empty_else(
+        other: int,
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Return the args[index] if the args[index] is not empty otherwise return the `other`."""
-    return check_positional_arguments(require_not_empty_else, index, other=other, msg=msg)
+    return check_positional_arguments(require_not_empty_else, index, {'other': other, 'msg': msg})
 
-def check_type(types: Union[Type, Tuple[Type]], index: Union[int, List[int], Callable] = None, msg: str = None) -> Callable:
+def check_type(
+        types: Type | tuple[Type],
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the args[index] is an instance of the `types` type."""
-    return check_positional_arguments(require_type, index, types=types, msg=msg)
+    return check_positional_arguments(require_type, index, {'types': types, 'msg': msg})
 
-def check_optional_type(types: Union[Type, Tuple[Type]], msg: str = None) -> Callable:
+def check_optional_type(
+        types: Type | tuple[Type],
+        index: int | list[int] | Callable | None = None,
+        msg: str | None = None
+) -> Callable[[Callable], Callable]:
     """Check whether the `obj` is an instance of the `types` type or None."""
-    return check_positional_arguments(require_optional_type, index, types=types, msg=msg)
+    return check_positional_arguments(require_optional_type, index, {'types': types, 'msg': msg})

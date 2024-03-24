@@ -1,10 +1,11 @@
 """This module provides functionality for interacting with the machine.
 """
-
+from __future__ import annotations
 import os
 import sys
 import subprocess
 from contextlib import contextmanager
+import platform
 from typing import Tuple, Dict
 
 __all__ = [
@@ -23,7 +24,9 @@ __all__ = [
     'terminate',
     'environ',
     'change_dir',
-    'is_on_ipython'
+    'is_on_ipython',
+    'is_64bits',
+    'get_default_encoding',
 ]
 
 def is_windows() -> bool:
@@ -183,3 +186,11 @@ def is_on_ipython() -> bool:
     False
     """
     return hasattr(__builtins__, '__IPYTHON__')
+
+def is_64bits() -> bool:
+    """Return whether the machine is 64 bits."""
+    return platform.architecture()[0].startswith('64')
+
+def get_default_encoding(default: str | None = None) -> str:
+    """Return the current default encoding used by the Unicode implementation."""
+    return default or sys.getdefaultencoding()

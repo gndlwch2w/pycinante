@@ -1,8 +1,8 @@
 """This module provides functionality for a dict-like object operation.
 """
-
+from __future__ import annotations
 from collections import OrderedDict
-from typing import TypeVar, Dict, Callable, Tuple, Union, Optional
+from typing import TypeVar, Dict, Callable, Any, Optional
 from pycinante.validator import require_variable_name, require_optional_type
 
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 K = TypeVar('K')
 V = TypeVar('V')
 
-def is_empty(d: dict) -> bool:
+def is_empty(d: Optional[dict]) -> bool:
     """Return True if the dict is empty, False otherwise.
 
     >>> assert is_empty(None)
@@ -28,7 +28,7 @@ def is_empty(d: dict) -> bool:
     """
     return d is None or len(d.keys()) == 0
 
-def is_not_empty(d: dict) -> bool:
+def is_not_empty(d: Optional[dict]) -> bool:
     """Return True if the dict is not empty, False otherwise.
 
     >>> assert not is_not_empty(None)
@@ -37,7 +37,7 @@ def is_not_empty(d: dict) -> bool:
     """
     return d is not None and len(d.keys()) != 0
 
-def update(d: Dict[K, V], m: Dict[K, V] = None, **kwargs) -> Dict[K, V]:
+def update(d: dict, m: dict = None, **kwargs) -> dict:
     """Update the dict in place and return itself with new items.
 
     >>> d = {'a': 1, 'b': 2}
@@ -56,7 +56,7 @@ def optional_factory() -> None:
     """
     return None
 
-class DefaultDict(Dict[K, V]):
+class DefaultDict(dict):
     """A default factory dictionary has default value with default factory. Namely, the default
     will be returned when the key is not present in a dict. But if the factory is None, the key
     error will be raised.
@@ -80,23 +80,23 @@ class DefaultDict(Dict[K, V]):
 
     Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/dict.py
     """
-    def __init__(self, factory: Callable[[], V] = None, *args, **kwargs):
+    def __init__(self, factory: Callable[[], ...] | None = None, *args, **kwargs) -> None:
         self.factory = require_optional_type(factory, Callable)
         super(DefaultDict, self).__init__(*args, **kwargs)
 
-    def __getitem__(self, key: K) -> V:
+    def __getitem__(self, key: ...) -> ...:
         try:
             return super(DefaultDict, self).__getitem__(key)
         except KeyError:
             return self.__missing__(key)
 
-    def __missing__(self, key: K) -> V:
+    def __missing__(self, key: ...) -> ...:
         if self.factory is None:
             raise KeyError(key)
         self[key] = value = self.factory()
         return value
 
-    def __reduce__(self) -> Tuple:
+    def __reduce__(self) -> tuple:
         args = (self.factory,) if self.factory else ()
         return type(self), args, None, None, iter(self.items())
 
@@ -114,7 +114,7 @@ class DefaultDict(Dict[K, V]):
         from copy import deepcopy
         return self.__class__(self.factory, deepcopy(iter(self.items())))
 
-class AttrDict(Dict[str, Union['EasyDict', V]]):
+class AttrDict(Dict[str, Any]):
     """An attribute dictionary that allows accessing dictionary values as if accessing class
     attributes. e.g. d['foo'] can be accessed same as d.foo. It requires all key names must
     be valid variable names.
@@ -136,7 +136,12 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
     Ref: [1] https://github.com/makinacorpus/easydict
          [2] https://flaggo.github.io/pydu/#/zh-cn/dict?id=dictattrdict
     """
-    def __init__(self, d: Dict[str, V] = None, factory: Callable = None, **kwargs: Dict[str, V]):
+    def __init__(
+            self,
+            d: dict[str, ...] | None = None,
+            factory: Callable[[], ...] | None = None,
+            **kwargs: dict[str, ...]
+    ):
         super(AttrDict, self).__init__()
         self.update(d, **kwargs)
         self.factory = require_optional_type(factory or optional_factory, Callable)
@@ -144,7 +149,7 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
             if not (key.startswith('__') and key.endswith('__')) and key not in ('update', 'pop'):
                 setattr(self, key, getattr(self, key))
 
-    def __setattr__(self, key: str, value: Union['AttrDict', V]) -> None:
+    def __setattr__(self, key: str, value: ...) -> None:
         """Set the value associated with the key in the dict."""
         key = require_variable_name(key)
         if isinstance(value, (list, tuple)):
@@ -154,7 +159,7 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
         super(AttrDict, self).__setattr__(key, value)
         super(AttrDict, self).__setitem__(key, value)
 
-    def __setitem__(self, key: str, value: Union['AttrDict', V]) -> None:
+    def __setitem__(self, key: str, value: ...) -> None:
         """Set the value associated with the key in the dict. You can use the chain key
         (e.g. k1.k2.k3.k4) to set the value associated with the key `d.k1.k2.k3.k4`.
         """
@@ -164,14 +169,14 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
             obj = obj.__getattr__(k)
         obj.__setattr__(keys[-1], value)
 
-    def __getattr__(self, key: str) -> Optional[Union['AttrDict', V]]:
+    def __getattr__(self, key: str) -> ...:
         """Return the value associated with the key from the dict."""
         try:
             return super(AttrDict, self).__getitem__(key)
         except KeyError:
             return self.__missing__(key)
 
-    def __getitem__(self, key: str) -> Optional[Union['AttrDict', V]]:
+    def __getitem__(self, key: str) -> ...:
         """Return the value associated with the key from the dict. You can use the chain key
         (e.g. k1.k2.k3.k4) to get the value associated the key `d.k1.k2.k3.k4`.
         """
@@ -182,18 +187,18 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
             value = value.__getattr__(k)
         return value
 
-    def __missing__(self, key: str) -> V:
+    def __missing__(self, key: str) -> ...:
         if self.factory is None:
             raise KeyError(key)
         self[key] = value = self.factory()
         return value
 
-    def update(self, d: Dict[str, V] = None, **kwargs: Dict[str, V]) -> None:
+    def update(self, d: dict[str, ...] = None, **kwargs: dict[str, ...]) -> None:
         """Update the dictionary with the key/value pairs from other, overwriting existing keys."""
         for key, value in update(d or {}, kwargs).items():
             self.__setattr__(key, value)
 
-    def pop(self, key: str, default: V = None) -> Optional[Union['AttrDict', V]]:
+    def pop(self, key: str, default: ... | None = None) -> ...:
         """Remove and return an arbitrary element from the set."""
         delattr(self, key)
         return super(AttrDict, self).pop(key, default)
@@ -203,7 +208,12 @@ class AttrDict(Dict[str, Union['EasyDict', V]]):
                                 for k, v in self.items()
                                 if k not in ('factory',)]) + '}'
 
-def attrify(d: Dict[str, V], factory: Callable = None, **kwargs) -> AttrDict[V]:
+def attrify(
+        d: Optional[dict[str, ...]],
+        factory: Callable[[], ...] | None = None,
+        **kwargs: dict[str, ...]
+) -> AttrDict:
+    # noinspection PyUnresolvedReferences
     """Return an object of type AttrDict, which encapsulates the dictionary object d and the
     key-value pairs from kwargs.
 

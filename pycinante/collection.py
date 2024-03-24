@@ -1,6 +1,5 @@
 """This module provides functionality for working with collections.
 """
-
 import copy
 from typing import *
 

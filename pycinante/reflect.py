@@ -15,7 +15,7 @@ __all__ = [
     'is_accept_kwargs'
 ]
 
-def cinvoke(c: bool, obj: object, m: str, *args, **kwargs) -> Any:
+def cinvoke(c: Optional[bool], obj: object, m: str, *args, **kwargs) -> Any:
     """Return `obj.m(*args, **kwargs)` if c is True, obj otherwise.
 
     >>> cinvoke(True, 'hello world', 'upper')
