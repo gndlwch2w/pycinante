@@ -6,7 +6,6 @@ import sys
 import subprocess
 from contextlib import contextmanager
 import platform
-from typing import Tuple, Dict
 
 __all__ = [
     'is_windows',

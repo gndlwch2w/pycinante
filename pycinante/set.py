@@ -2,7 +2,7 @@
 """
 from __future__ import annotations
 from collections import OrderedDict
-from pycinante.types import *
+from pycinante.types import Set, T, Iterable, Iterator
 
 __all__ = [
     'OrderedSet'

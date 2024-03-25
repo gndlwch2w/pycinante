@@ -2,7 +2,7 @@
 """
 from __future__ import annotations
 from collections import OrderedDict
-from pycinante.types import *
+from pycinante.types import Callable, Dict, K, V, Iterable, Type, Iterator
 from pycinante.validator import require_variable_name, require_optional_type
 
 __all__ = [

@@ -1,7 +1,7 @@
 """This module provides functionality for a list object accession.
 """
 from __future__ import annotations
-from pycinante.types import *
+from pycinante.types import T, Iterable, Callable, Sequence
 
 __all__ = [
     'arange',

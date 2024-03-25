@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import archive
-from pycinante.types import *
+from pycinante.types import AnyStr
 from pycinante.list import listify
 from pycinante.system import get_default_encoding
 
@@ -200,6 +200,7 @@ def list_files(pathname: AnyStr, exts: list[AnyStr] | None = None) -> list[AnySt
     """
     file_list = []
     for ext in listify(exts or ['.*']):
+        # noinspection PyUnresolvedReferences,PyTypeChecker
         ext = (ext.startswith('.') and ext) or ('.' + ext)
         file_list.extend(glob.glob(join(pathname, f'*{ext}')))
     return file_list

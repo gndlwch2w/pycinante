@@ -5,7 +5,7 @@ from functools import wraps
 import math
 import re
 import os
-from pycinante.types import *
+from pycinante.types import Sized, T, U, Union, Callable, Number, Type, Optional
 
 __all__ = [
     'require_not_empty',

@@ -19,8 +19,6 @@ class Timer(object):
     >>> timer = Timer()
     >>> timer(lambda: time.sleep(5))()
     >>> assert 5 - timer.elapsed < 1e-6
-
-    Ref: [1] https://github.com/flaggo/pydu/blob/master/pydu/dt.py
     """
 
     def __init__(self, print_func: Callable[[str], None] | None = None) -> None:
@@ -64,8 +62,6 @@ class TimeUnit(object):
     10
     >>> TimeUnit.HOURS.to_minutes(2)
     120
-
-    Ref: [1] https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/TimeUnit.html
     """
 
     # Time unit representing twenty-four hours.
@@ -131,14 +127,12 @@ class TimeUnit(object):
         return TimeUnit.NANOSECONDS.convert(duration, self)
 
 class Duration(object):
-    """A time-based amount of time, such as '34.5 seconds'. This class models a quantity or amount
-    of time in terms of seconds and nanoseconds. It can be accessed using other duration-based units,
-    such as minutes and hours.
+    """A time-based amount of time, such as '34.5 seconds'. This class models a quantity
+    or amount of time in terms of seconds and nanoseconds. It can be accessed using other
+    duration-based units, such as minutes and hours.
 
     >>> Duration.of_hours(12).to_days()
     0.5
-
-    Ref: [1] https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/Duration.html
     """
 
     def __init__(self, amount: Union[int, float], unit: TimeUnit):
@@ -178,7 +172,9 @@ class Duration(object):
         return Duration(self.amount + unit.convert(amount, self.unit), self.unit)
 
     def plus_days(self, days: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in standard 24-hour days added."""
+        """Returns a copy of this duration with the specified duration in standard 24-hour
+        days added.
+        """
         return self.plus(days, TimeUnit.DAYS)
 
     def plus_hours(self, hours: Union[int, float]) -> 'Duration':
@@ -186,19 +182,25 @@ class Duration(object):
         return self.plus(hours, TimeUnit.HOURS)
 
     def plus_minutes(self, minutes: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in minutes added."""
+        """Returns a copy of this duration with the specified duration in minutes added.
+        """
         return self.plus(minutes, TimeUnit.MINUTES)
 
     def plus_seconds(self, seconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in seconds added."""
+        """Returns a copy of this duration with the specified duration in seconds added.
+        """
         return self.plus(seconds, TimeUnit.SECONDS)
 
     def plus_millis(self, milliseconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in milliseconds added."""
+        """Returns a copy of this duration with the specified duration in milliseconds
+        added.
+        """
         return self.plus(milliseconds, TimeUnit.MILLISECONDS)
 
     def plus_nanos(self, nanoseconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in nanoseconds added."""
+        """Returns a copy of this duration with the specified duration in nanoseconds
+        added.
+        """
         return self.plus(nanoseconds, TimeUnit.NANOSECONDS)
 
     def minus(self, amount: Union[int, float], unit: TimeUnit) -> 'Duration':
@@ -206,7 +208,9 @@ class Duration(object):
         return Duration(self.amount - unit.convert(amount, self.unit), self.unit)
 
     def minus_days(self, days: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in standard 24-hour days subtracted."""
+        """Returns a copy of this duration with the specified duration in standard 24-hour
+        days subtracted.
+        """
         return self.minus(days, TimeUnit.DAYS)
 
     def minus_hours(self, hours: Union[int, float]) -> 'Duration':
@@ -214,19 +218,27 @@ class Duration(object):
         return self.minus(hours, TimeUnit.HOURS)
 
     def minus_minutes(self, minutes: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in minutes subtracted."""
+        """Returns a copy of this duration with the specified duration in minutes
+        subtracted.
+        """
         return self.minus(minutes, TimeUnit.MINUTES)
 
     def minus_seconds(self, seconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in seconds subtracted."""
+        """Returns a copy of this duration with the specified duration in seconds
+        subtracted.
+        """
         return self.minus(seconds, TimeUnit.SECONDS)
 
     def minus_millis(self, milliseconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in milliseconds subtracted."""
+        """Returns a copy of this duration with the specified duration in milliseconds
+        subtracted.
+        """
         return self.minus(milliseconds, TimeUnit.MILLISECONDS)
 
     def minus_nanos(self, nanoseconds: Union[int, float]) -> 'Duration':
-        """Returns a copy of this duration with the specified duration in nanoseconds subtracted."""
+        """Returns a copy of this duration with the specified duration in nanoseconds
+        subtracted.
+        """
         return self.minus(nanoseconds, TimeUnit.NANOSECONDS)
 
     def multiplied_by(self, amount: Union[int, float], unit: TimeUnit) -> 'Duration':

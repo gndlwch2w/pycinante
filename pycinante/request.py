@@ -6,7 +6,7 @@ from requests import Response
 import fake_useragent
 from pycinante.dict import update
 from pycinante.object import get_default
-from pycinante.types import *
+from pycinante.types import AnyStr
 
 __all__ = [
     'set_request_header',
