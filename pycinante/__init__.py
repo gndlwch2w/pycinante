@@ -9,7 +9,7 @@ from glob import glob
 from typing import Optional, TypeVar, Union, Any, List, Dict, Tuple, AnyStr, Callable, Iterable, Sequence, Type
 from importlib import import_module
 
-__version__ = "0.0.2rc1"
+__version__ = "0.0.3rc1"
 
 __all__ = ["export"]
 
