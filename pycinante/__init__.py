@@ -3,22 +3,23 @@ import json
 import os
 import pickle
 import sys
-from functools import partial, wraps
+from functools import partial, wraps, update_wrapper
 from loguru import logger as _logger
 from glob import glob
-from typing import *
-from types import FunctionType
+from typing import Optional, TypeVar, Union, Any, List, Dict, Tuple, AnyStr, Callable, Iterable, Sequence, Type
+from importlib import import_module
 
-__version__ = "0.0.2"
+__version__ = "0.0.2rc1"
 
-__all__ = ["export", "logger", "PathBuilder", "AttrDict"]
+__all__ = ["export"]
 
+T_co = TypeVar("T_co", covariant=True)
 PathLike = Union[str, os.PathLike]
 
-def export(func: Optional[FunctionType] = None) -> Callable[..., Any]:
-    """Export a function into its __all__."""
+def export(func: Optional[T_co] = None) -> T_co:
+    """Export a function/class definition into its module's `__all__`."""
     @wraps(func)
-    def _wrapper(func: FunctionType) -> Callable[..., Any]:
+    def _wrapper(func: T_co) -> T_co:
         return export(func)
 
     if func is None:
@@ -33,6 +34,14 @@ def export(func: Optional[FunctionType] = None) -> Callable[..., Any]:
         m.__all__ = [func_name]
 
     return func
+
+@export
+def import_part(module: str, part: Optional[str] = None, **kwargs: Any) -> Any:
+    """Import a part (e.g. a function/class/property) from the specified module. The whole module will be returned if a
+    part name is not specified.
+    """
+    m = import_module(module, **kwargs)
+    return getattr(m, part) if part else m
 
 @export
 def prettify(obj: Any, encoder: Optional[Type[json.JSONEncoder]] = None, **kwargs: Any) -> str:
@@ -73,6 +82,7 @@ def _log(message: Any, *messages: Any, level: str, sep: str = " ", pretty: bool 
     pretty_func = prettify if pretty else str
     getattr(_logger, level)(sep.join(pretty_func(m) for m in (message, *messages)), **kwargs)
 
+@export
 class logger:
     """Helper class for convenience to record log with loguru.
 
@@ -105,14 +115,14 @@ class logger:
     stop = _logger.stop
 
     log = _logger.log
-    critical = partial(_log, level="critical")
-    debug = partial(_log, level="debug")
-    info = partial(_log, level="info")
-    warning = partial(_log, level="warning")
-    error = partial(_log, level="error")
-    exception = partial(_log, level="exception")
-    success = partial(_log, level="success")
-    trace = partial(_log, level="trace")
+    critical = update_wrapper(partial(_log, level="critical"), _log)
+    debug = update_wrapper(partial(_log, level="debug"), _log)
+    info = update_wrapper(partial(_log, level="info"), _log)
+    warning = update_wrapper(partial(_log, level="warning"), _log)
+    error = update_wrapper(partial(_log, level="error"), _log)
+    exception = update_wrapper(partial(_log, level="exception"), _log)
+    success = update_wrapper(partial(_log, level="success"), _log)
+    trace = update_wrapper(partial(_log, level="trace"), _log)
 
 @export
 def load_text(pathname: PathLike, mode: str = "r", encoding: str = None, **kwargs: Any) -> AnyStr:
@@ -144,12 +154,13 @@ def dump_pickle(obj: Any, pathname: PathLike, **kwargs: Any) -> None:
     with open(pathname, "wb") as fp:
         return pickle.dump(obj, fp, **kwargs)
 
-class PathBuilder(os.PathLike):
-    """Helper class to build paths.
+@export
+class Path(os.PathLike):
+    """Helper class to operate on path in convenience.
 
     Using cases:
-        >>> root = PathBuilder("log", "unet", mkdir=True)
-        >>> checkpoints: PathBuilder = root / "checkpoints"
+        >>> root = Path("log", "unet", mkdir=True)
+        >>> checkpoints: Path = root / "checkpoints"
         >>> last_ckpt: str = checkpoints + "last.ckpt"
 
         As shown above, if the path root "log/unet" is not exists, PathBuilder will automatically create it when mkdir
@@ -157,17 +168,17 @@ class PathBuilder(os.PathLike):
         pathnames by `+`, e.g. "log/unet/checkpoints/last.ckpt".
     """
 
-    def __init__(self, *names: str, mkdir: bool = True) -> None:
-        self.mkdir = mkdir
+    def __init__(self, *names: str, mkdir: bool = False) -> None:
+        self._mkdir = mkdir
         self._pathname = str(os.path.join(*(names or (".",))))
-        os.makedirs(self._pathname, exist_ok=True) if mkdir else None
+        self.mkdir() if self._mkdir else None
 
     @property
     def pathname(self) -> str:
         return self._pathname
 
-    def parent(self) -> PathBuilder:
-        return PathBuilder(os.path.dirname(self._pathname), mkdir=self.mkdir)
+    def parent(self) -> Path:
+        return Path(os.path.dirname(self._pathname), mkdir=self._mkdir)
 
     def glob(self, pattern: str, **kwargs: Any) -> List[str]:
         return glob(os.path.join(self._pathname, pattern), **kwargs)
@@ -175,14 +186,66 @@ class PathBuilder(os.PathLike):
     def is_empty(self) -> bool:
         return len(os.listdir(self._pathname)) == 0
 
-    def mkdir(self) -> None:
+    def mkdir(self) -> Path:
         os.makedirs(self._pathname, exist_ok=True)
+        return self
 
-    def join(self, *pathnames: str) -> PathBuilder:
-        return PathBuilder(self._pathname, *pathnames, mkdir=self.mkdir)
+    def remove(self) -> Path:
+        os.remove(self._pathname)
+        return self
 
-    def __truediv__(self, name: str) -> PathBuilder:
-        return PathBuilder(os.path.join(self._pathname, name), mkdir=self.mkdir)
+    def join(self, *names: str) -> Path:
+        return Path(self._pathname, *names, mkdir=self._mkdir)
+
+    def exists(self) -> bool:
+        return os.path.exists(self._pathname)
+
+    def absolute(self) -> Path:
+        self._pathname = os.path.abspath(self._pathname)
+        return self
+
+    def cd(self, pathname: str) -> Path:
+        return Path(pathname if os.path.isabs(pathname) else os.path.abspath(
+            os.path.join(self._pathname, pathname)), mkdir=self._mkdir)
+
+    def load_text(self, filename: str, **kwargs: Any) -> AnyStr:
+        return self.read(filename, reader=kwargs.pop("loader", load_text), **kwargs)
+
+    def dump_text(self, text: AnyStr, filename: str, **kwargs: Any) -> None:
+        self.write(text, filename, writer=kwargs.pop("dumper", dump_text), **kwargs)
+
+    def load_json(self, filename: str, **kwargs: Any) -> Any:
+        return self.read(filename, reader=kwargs.pop("loader", load_json), **kwargs)
+
+    def dump_json(self, obj: Any, filename: str, **kwargs: Any) -> None:
+        self.write(obj, filename, writer=kwargs.pop("dumper", dump_json), **kwargs)
+
+    def load_pickle(self, filename: str, **kwargs: Any) -> Any:
+        return self.read(filename, reader=kwargs.pop("loader", load_pickle), **kwargs)
+
+    def dump_pickle(self, obj: Any, filename: str, **kwargs: Any) -> None:
+        self.write(obj, filename, writer=kwargs.pop("dumper", dump_pickle), **kwargs)
+
+    # noinspection PyUnresolvedReferences
+    def read_excel(self, filename: str, **kwargs: Any) -> "DataFrame":
+        return self.read(filename, import_part(module="pandas", part="read_excel"), **kwargs)
+
+    # noinspection PyUnresolvedReferences
+    def read_csv(self, filename: str, **kwargs: Any) -> "DataFrame":
+        return self.read(filename, import_part(module="pandas", part="read_csv"), **kwargs)
+
+    # noinspection PyUnresolvedReferences
+    def read_image(self, filename: str, loader: Optional[Callable[..., Any]] = None, **kwargs: Any) -> Any:
+        return self.read(filename, reader=loader or import_part(module="cv2", part="imread"), **kwargs)
+
+    def read(self, filename: str, reader: Callable[..., Any], **kwargs: Any) -> Any:
+        return reader(os.path.join(self._pathname, filename), **kwargs)
+
+    def write(self, obj: Any, filename: str, writer: Callable[..., None], **kwargs: Any) -> None:
+        writer(obj, os.path.join(self._pathname, filename), **kwargs)
+
+    def __truediv__(self, name: str) -> Path:
+        return Path(os.path.join(self._pathname, name), mkdir=self._mkdir)
 
     def __add__(self, name: str) -> str:
         return os.path.join(self._pathname, name)
@@ -245,6 +308,7 @@ def flatten(seq: Iterable[Any]) -> Sequence[Any]:
         else:
             yield e
 
+@export
 class AttrDict(Dict[str, Any]):
     """Attribute dictionary, allowing access to dict values as if they were class attributes.
 
