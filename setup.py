@@ -2,7 +2,7 @@ import sys
 from setuptools import setup, find_packages
 import pycinante
 
-requirements = ["setuptools", "loguru"]
+requirements = ["setuptools", "loguru", "loguru-mypy", "typing_extensions"]
 
 setup(
     name="pycinante",

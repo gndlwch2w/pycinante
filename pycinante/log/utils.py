@@ -1,14 +1,14 @@
-from typing import Dict, Any, Optional
+from pycinante.utils import export
 
-__all__ = ["is_valexp", "eval_valexp"]
-
-def is_valexp(exp: str) -> bool:
+@export
+def is_valexp(exp):
     """
     Return the expression is a valid value expression, i.e. {variable}.
     """
     return exp.startswith("{") and exp.endswith("}")
 
-def eval_valexp(exp: str, context: Optional[Dict[str, Any]] = None) -> Any:
+@export
+def eval_valexp(exp, context=None):
     """
     Return the value that is evaluated from the value expression.
     """
