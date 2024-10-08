@@ -69,7 +69,7 @@ class File(PathLike):
     def filename(self) -> str:
         """
         Return the file name of pathname path. This is the string returned from basename() with striping the last extension.
-        e.g. a pathname '/foo/bar/test.c.py', the filename() function returns 'test.c'.
+        e.g. a pathname '/foo/bar/test.sh.__init__.py', the filename() function returns 'test.sh.c'.
         """
         return osp.splitext(osp.basename(self))[0]
 
