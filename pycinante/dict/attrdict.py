@@ -1,5 +1,8 @@
 """Update Log
 
+2023.10.08:
+    - added type hints on attrdict
+
 2024.10.07:
     - completely tested attrdict and attrify()'s functionalities provided already
     - added the generic supports for any type of inputs
@@ -11,19 +14,10 @@
 
 from __future__ import annotations
 import contextlib
-from pycinante.dict.utils import *
-from typing import TypeVar, Dict, Optional, Iterable, Union, Any, Tuple
-from typing_extensions import Self
 
 __all__ = ["attrdict", "attrify"]
 
-_E = TypeVar("_E")
-E = Union[_E, Any]
-
-T = TypeVar("T")
-Element = Optional[Union[Dict[str, T], Iterable[Iterable]]]
-
-class AttrDict(Dict[str, E]):
+class AttrDict(dict):
     """Attribute dictionary, allowing access to dict values as if they were class attributes.
 
     Using cases:
@@ -37,33 +31,33 @@ class AttrDict(Dict[str, E]):
         As shown above, you first need to covert an existing dict into AttrDict, and then you can access its value as
         you access a class/instance's properties. Moreover, you can get/set the value in `[]` via cascaded strings.
     """
-    def __init__(self, seq: Element[E] = None, **kwargs: E) -> None:
-        super(AttrDict, self).__init__()
+    def __init__(self, seq=None, **kwargs):
+        super().__init__()
         self.update(seq, **kwargs)
 
-    def clear(self) -> Self:
+    def clear(self):
         """
         Remove all items from the dictionary. Return itself. Note that the clear() function only deletes references to
         currently held instances.
         """
         _ = [delattr(self, key) for key in self.keys()]
-        super(AttrDict, self).clear()
+        super().clear()
         return self
 
-    def copy(self) -> AttrDict[E]:
+    def copy(self):
         """
         Return a shallow copy of the current instance.
         """
-        return AttrDict(super(AttrDict, self).copy())
+        return AttrDict(super().copy())
 
     @staticmethod
-    def fromkeys(iterable: Iterable[str], values: Optional[E] = None, **_kwargs: Any) -> AttrDict[E]:
+    def fromkeys(iterable, values=None, **_kwargs):
         """
         Create a new dictionary with keys from iterable and values set to value.
         """
         return AttrDict(dict.fromkeys(iterable, values))
 
-    def get(self, key: str, default: Optional[E] = None) -> E:
+    def get(self, key, default=None):
         """
         Return the value for key if key is in the dictionary, else default.
         """
@@ -72,19 +66,19 @@ class AttrDict(Dict[str, E]):
         except KeyError:
             return default
 
-    def items(self) -> dict_items[str, E]:
+    def items(self):
         """
         Return a new view of the dictionary’s items ((key, value) pairs).
         """
-        return super(AttrDict, self).items()
+        return super().items()
 
-    def keys(self) -> dict_keys[str]:
+    def keys(self):
         """
         Return a new view of the dictionary’s keys.
         """
-        return super(AttrDict, self).keys()
+        return super().keys()
 
-    def pop(self, key: str, default: Optional[E] = None) -> E:
+    def pop(self, key, default=None):
         """
         If key is in the dictionary, remove it and return its value, else return default. If default is not given and
         key is not in the dictionary, a KeyError is raised.
@@ -99,16 +93,16 @@ class AttrDict(Dict[str, E]):
             delattr(parent, key)
         return super(AttrDict, parent).pop(key, default)
 
-    def popitem(self) -> Tuple[str, E]:
+    def popitem(self):
         """
         Remove and return a (key, value) pair from the dictionary. Pairs are returned in LIFO order.
         """
-        ret = super(AttrDict, self).popitem()
+        ret = super().popitem()
         with contextlib.suppress(AttributeError):
             delattr(self, ret[0])
         return ret
 
-    def setdefault(self, key: str, default: Optional[E] = None) -> E:
+    def setdefault(self, key, default=None):
         """
         If key is in the dictionary, return its value. If not, insert key with a value of default and return default.
         default defaults to None.
@@ -118,7 +112,7 @@ class AttrDict(Dict[str, E]):
         self.__setitem__(key, default)
         return default
 
-    def update(self, seq: Element[E] = None, **kwargs: E) -> Self:
+    def update(self, seq=None, **kwargs):
         """
         Update the dictionary with the key/value pairs from other, overwriting existing keys. Return itself.
         """
@@ -126,13 +120,13 @@ class AttrDict(Dict[str, E]):
             self.__setattr__(key, value)
         return self
 
-    def values(self) -> dict_values[E]:
+    def values(self):
         """
         Return a new view of the dictionary’s values.
         """
-        return super(AttrDict, self).values()
+        return super().values()
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: str):
         """
         Return True if the dictionary has the specified key, else False.
         """
@@ -142,17 +136,17 @@ class AttrDict(Dict[str, E]):
         except KeyError:
             return False
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str):
         """
         Delete self[key]. It is implemented by pop().
         """
         self.pop(key)
 
-    def __setattr__(self, key: str, value: E) -> None:
+    def __setattr__(self, key: str, value):
         """
         Set d[key]=value and at same time set d.key=value.
         """
-        def _covert_recursively(obj: E) -> E:
+        def _covert_recursively(obj):
             if isinstance(obj, dict) and not isinstance(obj, AttrDict):
                 return self.__class__(obj)
             if isinstance(obj, (tuple, list, set)):
@@ -160,16 +154,16 @@ class AttrDict(Dict[str, E]):
             return obj
 
         value = _covert_recursively(value)
-        super(AttrDict, self).__setattr__(key, value)
-        super(AttrDict, self).__setitem__(key, value)
+        super().__setattr__(key, value)
+        super().__setitem__(key, value)
 
-    def __getattr__(self, key: str) -> E:
+    def __getattr__(self, key: str):
         """
         Return the value for key if key is in the dictionary, else raise a KeyError.
         """
-        return super(AttrDict, self).__getitem__(key)
+        return super().__getitem__(key)
 
-    def __setitem__(self, key: str, value: E) -> None:
+    def __setitem__(self, key: str, value):
         """
         It works similar to __setattr__(), and you can set key/value pair in str chain way like d["a.b.c.d"]=value.
         """
@@ -180,7 +174,7 @@ class AttrDict(Dict[str, E]):
         else:
             self.__setattr__(key, value)
 
-    def __getitem__(self, key: str) -> E:
+    def __getitem__(self, key: str):
         """
         It works similar to __getattr__(), and you can get key/value pair in str chain way like d["a.b.c.d"].
         """
@@ -192,13 +186,13 @@ class AttrDict(Dict[str, E]):
             return d[key]
         return self.__getattr__(key)
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self):
         """
         Return all method/attribute names of the instance.
         """
-        return super(AttrDict, self).__dir__()
+        return super().__dir__()
 
-def attrify(seq: Element[T] = None, **kwargs: T) -> AttrDict[T]:
+def attrify(seq=None, **kwargs):
     """
     Covert a dict/iterable into a AttrDict.
     """

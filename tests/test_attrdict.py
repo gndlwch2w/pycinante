@@ -28,7 +28,7 @@ def test_clear():
     t["a.b.c.g"] = 4
     t["a.b.f"] = [5, 6]
 
-    g = t.a.b.c._d[-1]
+    g = t.a.b.c.d[-1]
 
     assert isinstance(g, attrdict)
     t.clear()
@@ -39,7 +39,7 @@ def test_copy():
     t = attrdict()
     t["a.b.c.d"] = [1, 2, {"e": 3}]
 
-    assert id(t.copy().a.b.c._d) == id(t.a.b.c._d)
+    assert id(t.copy().a.b.c.d) == id(t.a.b.c.d)
 
 def test_fromkeys():
     assert attrdict.fromkeys(iterable=["a", "b"], values=[1, 2, 3]).a[0] == 1
@@ -61,7 +61,7 @@ def test_pop():
     t["a.b.f"] = [5, 6]
 
     assert t.pop("a.b.c.g") == 4
-    assert t.a.b.c._d[-1].e == 3
+    assert t.a.b.c.d[-1].e == 3
 
 def test_popitem():
     assert attrdict({"a": "b"}).popitem() == ("a", "b")
@@ -74,7 +74,7 @@ def test_setdefault():
 def test_update():
     assert attrdict({"a": 1, "b": 2}).a == 1
     assert attrdict({"a": 1, "b": {"c": 3}}).b.c == 3
-    assert attrdict({"a": 1, "b": {"c": [4, {"d": 5}]}}).b.c[1]._d == 5
+    assert attrdict({"a": 1, "b": {"c": [4, {"d": 5}]}}).b.c[1].d == 5
     with pytest.raises(KeyError):
         assert attrdict({"a": 1, "b": 2}).c
 
