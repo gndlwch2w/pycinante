@@ -1,0 +1,13 @@
+from json import JSONEncoder
+from typing import Any, TypeVar, Type
+from types import ModuleType, FunctionType
+
+T_co = TypeVar("T_co", covariant=True)
+
+def export(func_or_clz: T_co | None = None) -> T_co: ...
+
+class OptionalImportError(ImportError): ...
+
+def optional_import(module: str, name: str = "") -> tuple[ModuleType | FunctionType | Any, bool]: ...
+
+def prettify(obj: Any, encoder: Type[JSONEncoder] | None = None, **kwargs: Any) -> str: ...

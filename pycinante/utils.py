@@ -1,33 +1,30 @@
 import sys
 from functools import wraps
 from importlib import import_module
-from typing import Optional, TypeVar, Tuple, Any, Type
+import json
 
 __all__ = ["export"]
 
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-
-def export(func: Optional[T_co] = None) -> T_co:
+def export(func_or_clz=None):
     """
     Exports a function/class definition into its module's `__all__`.
     """
-    @wraps(func)
-    def _wrapper(func: T_co) -> T_co:
+    @wraps(func_or_clz)
+    def _wrapper(func):
         return export(func)
 
-    if func is None:
+    if func_or_clz is None:
         return _wrapper
 
-    func_name = func.__name__
-    m = sys.modules[func.__module__]
+    func_name = func_or_clz.__name__
+    m = sys.modules[func_or_clz.__module__]
     if hasattr(m, "__all__"):
         if func_name not in m.__all__:
             m.__all__.append(func_name)
     else:
         m.__all__ = [func_name]
 
-    return func
+    return func_or_clz
 
 @export
 class OptionalImportError(ImportError):
@@ -36,7 +33,7 @@ class OptionalImportError(ImportError):
     """
 
 @export
-def optional_import(module: str, name: str = "") -> Tuple[Any, bool]:
+def optional_import(module, name=""):
     """
     Imports an optional module specified by `module` string. Any importing related exceptions will be stored, and
     exceptions raise lazily when attempting to use the failed-to-import module.
@@ -49,7 +46,7 @@ def optional_import(module: str, name: str = "") -> Tuple[Any, bool]:
         cmd = f"from {module} import {name}" if name else f"import {module}"
         exc = OptionalImportError(f"{str(cmd)} ({str(e)})").with_traceback(e.__traceback__)
 
-        def wrapper(*_args, **_kwargs) -> Any:
+        def wrapper(*_args, **_kwargs):
             raise exc
 
         return type("LazyRaise", (object,), {
@@ -58,9 +55,8 @@ def optional_import(module: str, name: str = "") -> Tuple[Any, bool]:
     else:  # found the module
         return the_module, True
 
-# noinspection PyUnresolvedReferences
 @export
-def prettify(obj: Any, encoder: Optional[Type["json.JSONEncoder"]] = None, **kwargs: Any) -> str:
+def prettify(obj, encoder=None, **kwargs):
     """Prettify a Python object into an easy-to-read string. Due to its backed by json serializer, if an object cannot
     be serialized, a plain string of the object will be returned. Or you can opt to implement a special json encoder to
     serialize the object and to set it to the `encoder` argument when calling `prettify`.
@@ -68,7 +64,7 @@ def prettify(obj: Any, encoder: Optional[Type["json.JSONEncoder"]] = None, **kwa
     Using cases:
         >>> import albumentations as T
         >>> class MyJsonEncoder(json.JSONEncoder):
-        >>>     def default(self, obj: Any) -> Any:
+        >>>     def default(self, obj):
         >>>         if isinstance(obj, (T.BaseCompose, T.BaseCompose)):
         >>>             return r(8) if (r := getattr(obj, "indented_repr", None)) else repr(obj)
         >>>         return super(MyJsonEncoder, self).default(obj)
