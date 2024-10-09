@@ -1,14 +1,9 @@
-from os import PathLike
 import os.path as osp
 from enum import Enum
-from typing import Union, AnyStr
-from typing_extensions import TypeAlias
 from pycinante.misc.unit import number_as_udef
+from pycinante.utils import export
 
-__all__ = ["PathType", "BinaryUnit", "get_ext"]
-
-PathType: TypeAlias = Union[AnyStr, PathLike]
-
+@export
 class BinaryUnit(Enum):
     """
     Binary unit enum. It works with the utilities in 'pycinante.unit'.
@@ -25,8 +20,17 @@ class BinaryUnit(Enum):
     YOTTA_BYTE = number_as_udef(name="yb", unit=1024 ** 8)
     BRONTO_BYTE = number_as_udef(name="bb", unit=1024 ** 9)
 
-def get_ext(path: PathType) -> str:
+@export
+def get_ext(path):
     """
     Return the extension of a given path.
     """
     return osp.splitext(osp.basename(path))[1]
+
+@export
+def get_filename(path):
+    """
+    Return the file name of pathname path. This is the string returned from basename() with striping the last extension.
+    e.g. a pathname '/foo/bar/test.sh.__init__.py', the filename() function returns 'test.sh.c'.
+    """
+    return osp.splitext(osp.basename(path))[0]

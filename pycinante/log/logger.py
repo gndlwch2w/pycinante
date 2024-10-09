@@ -15,13 +15,11 @@ from functools import partial
 from loguru import _defaults
 from loguru import logger as loguru
 from pycinante.io.accessor import match_file_accessor
-from pycinante.io.utils import PathType
 from pycinante.log.utils import eval_valexp
-from typing import Any, Optional, Dict
 
 __all__ = ["logger"]
 
-def log(msg, *msgs, sep=" ", prettify=str, level, **kwargs: Any) -> None:
+def log(msg, *msgs, sep=" ", prettify=str, level, **kwargs) -> None:
     """
     An updated version of loguru.log(), and you can use it like the print() function.
     """
@@ -96,11 +94,11 @@ class logger:
 
         if isinstance(handler_id, str):
             # remove all handlers whose filename is matched with handler_id
-            def _is_matching_handler(handler: Any) -> bool:
+            def _is_matching_handler(handler) -> bool:
                 return getattr(getattr(handler[1], "_sink"), "_path", None) == handler_id
         elif isinstance(handler_id, type(sys.stderr)):
             # remove all handlers whose stream is matched with handler_id
-            def _is_matching_handler(handler: Any) -> bool:
+            def _is_matching_handler(handler) -> bool:
                 return getattr(getattr(handler[1], "_sink"), "_stream", None) == handler_id
         else:
             raise ValueError(f"Cannot handle handler_id type: {type(handler_id)}")
@@ -110,7 +108,7 @@ class logger:
             loguru.remove(handler[0])
 
     @staticmethod
-    def console(level=None, format=None, **kwargs: Any) -> None:
+    def console(level=None, format=None, **kwargs) -> None:
         """
         A helper function for reconfiguring the logging outputting to the console. It only re-configs the default console
         logging handler, that is a handler whose handler id is equal to 0.
@@ -120,7 +118,7 @@ class logger:
         logger.add(sys.stderr, level=level, format=format, **kwargs)
 
     @staticmethod
-    def load_cfg(path: PathType, context: Optional[Dict[str, Any]] = None) -> None:
+    def load_cfg(path, context=None) -> None:
         """
         Load the logging configs in the file (.json, .toml, .yaml, ...) and config the logger with it.
 

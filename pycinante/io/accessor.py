@@ -4,13 +4,9 @@ import sys
 import pickle
 import re
 from pycinante.utils import optional_import, export
-from pycinante.io.utils import PathType
-from typing import Callable, Any, Optional, List, Type, Generic, TypeVar
-
-T = TypeVar("T")
 
 @export
-class FileAccessor(Generic[T], ABC):
+class FileAccessor(ABC):
     """
     A helper class for providing unified interfaces to access various type of file.
     """
@@ -20,7 +16,7 @@ class FileAccessor(Generic[T], ABC):
 
     @property
     @abstractmethod
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         """
         Return a loader used for loading the specific type file from path.
         """
@@ -28,34 +24,34 @@ class FileAccessor(Generic[T], ABC):
 
     @property
     @abstractmethod
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         """
         Return a dumper used for storing data into the specific file.
         """
         pass
 
     @property
-    def order(self) -> int:
+    def order(self):
         """
         Return a priority number where a higher priority can be first considered as FileAccessor. The priority is -1 by
         default. A larger value indicates a higher priority.
         """
         return -1
 
-    def load(self, path: PathType, **kwargs: Any) -> T:
+    def load(self, path, **kwargs):
         """
         Load data from the specific path through loader().
         """
         return self.loader(path, **kwargs)
 
-    def dump(self, obj: T, path: PathType, **kwargs: Any) -> None:
+    def dump(self, obj, path, **kwargs):
         """
         Dump data to the specific file through dumper().
         """
         self.dumper(obj, path, **kwargs)
 
 @export
-def load_text(path: PathType, **kwargs: Any) -> str:
+def load_text(path, **kwargs):
     """
     Load text from the path file.
     """
@@ -63,7 +59,7 @@ def load_text(path: PathType, **kwargs: Any) -> str:
         return fp.read()
 
 @export
-def dump_text(obj: str, path: PathType, **kwargs: Any) -> None:
+def dump_text(obj, path, **kwargs):
     """
     Dump obj into the text file.
     """
@@ -71,7 +67,7 @@ def dump_text(obj: str, path: PathType, **kwargs: Any) -> None:
         fp.write(obj)
 
 @export
-class TextFileAccessor(FileAccessor[str]):
+class TextFileAccessor(FileAccessor):
     """
     A helper class for accessing files of text type (.txt).
     """
@@ -79,15 +75,15 @@ class TextFileAccessor(FileAccessor[str]):
     supported_types = [".txt"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_text
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_text
 
 @export
-def load_bytes(path: PathType, **kwargs: Any) -> bytes:
+def load_bytes(path, **kwargs):
     """
     Load bytes from the path file.
     """
@@ -95,7 +91,7 @@ def load_bytes(path: PathType, **kwargs: Any) -> bytes:
         return fp.read()
 
 @export
-def dump_bytes(obj: bytes, path: PathType, **kwargs: Any) -> None:
+def dump_bytes(obj, path, **kwargs):
     """
     Dump obj into the bytes file.
     """
@@ -103,7 +99,7 @@ def dump_bytes(obj: bytes, path: PathType, **kwargs: Any) -> None:
         fp.write(obj)
 
 @export
-class BytesFileAccessor(FileAccessor[bytes]):
+class BytesFileAccessor(FileAccessor):
     """
     A helper class for accessing files of binary type. The accessor can read all type of file.
     """
@@ -111,15 +107,15 @@ class BytesFileAccessor(FileAccessor[bytes]):
     supported_types = [".*"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_bytes
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_bytes
 
     @property
-    def order(self) -> int:
+    def order(self):
         return -2147483648
 
 try:
@@ -128,7 +124,7 @@ except ImportError:
     import json
 
 @export
-def load_json(path: PathType, **kwargs: Any) -> Any:
+def load_json(path, **kwargs):
     """
     Load json from the path file.
     """
@@ -136,7 +132,7 @@ def load_json(path: PathType, **kwargs: Any) -> Any:
         return json.load(fp, **kwargs)
 
 @export
-def dump_json(obj: Any, path: PathType, **kwargs: Any) -> None:
+def dump_json(obj, path, **kwargs):
     """
     Dump obj into the json file.
     """
@@ -144,7 +140,7 @@ def dump_json(obj: Any, path: PathType, **kwargs: Any) -> None:
         json.dump(obj, fp, **kwargs)
 
 @export
-class JsonFileAccessor(FileAccessor[Any]):
+class JsonFileAccessor(FileAccessor):
     """
     A helper class for accessing files of json type (.json).
     """
@@ -152,15 +148,15 @@ class JsonFileAccessor(FileAccessor[Any]):
     supported_types = [".json"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_json
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_json
 
 @export
-def load_pickle(path: PathType, **kwargs: Any) -> Any:
+def load_pickle(path, **kwargs):
     """
     Load pickle from the path file.
     """
@@ -168,7 +164,7 @@ def load_pickle(path: PathType, **kwargs: Any) -> Any:
         return pickle.load(fp, **kwargs)
 
 @export
-def dump_pickle(obj: Any, path: PathType, **kwargs: Any) -> None:
+def dump_pickle(obj, path, **kwargs):
     """
     Dump obj into the pickle file.
     """
@@ -176,7 +172,7 @@ def dump_pickle(obj: Any, path: PathType, **kwargs: Any) -> None:
         pickle.dump(obj, fp, **kwargs)
 
 @export
-class PickleFileAccessor(FileAccessor[Any]):
+class PickleFileAccessor(FileAccessor):
     """
     A helper class for accessing files of pickle type (.pkl).
     """
@@ -184,31 +180,31 @@ class PickleFileAccessor(FileAccessor[Any]):
     supported_types = [".pkl"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_pickle
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_pickle
 
 cv2, _ = optional_import("cv2")
 
 @export
-def load_cv2(path: PathType, **kwargs: Any) -> "numpy.ndarray":
+def load_cv2(path, **kwargs):
     """
     Load image from the path file via opencv.
     """
     return cv2.imread(os.fspath(path), **kwargs)
 
 @export
-def dump_cv2(obj: "numpy.ndarray", path: PathType, **kwargs: Any) -> None:
+def dump_cv2(obj, path, **kwargs):
     """
     Dump obj into the image file via opencv.
     """
     assert cv2.imwrite(os.fspath(path), obj, **kwargs)
 
 @export
-class OpenCVImageFileAccessor(FileAccessor["numpy.ndarray"]):
+class OpenCVImageFileAccessor(FileAccessor):
     """
     A helper class for accessing files of image type via opencv.
     """
@@ -219,36 +215,36 @@ class OpenCVImageFileAccessor(FileAccessor["numpy.ndarray"]):
     ]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_cv2
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_cv2
 
     @property
-    def order(self) -> int:
+    def order(self):
         # higher priority than PIL accessor
         return 100
 
 PIL, _ = optional_import(module="PIL", name="Image")
 
 @export
-def load_pil(path: PathType, **kwargs: Any) -> "PIL.Image":
+def load_pil(path, **kwargs):
     """
     Load image from the path file via Pillow.
     """
     return PIL.open(os.fspath(path), **kwargs)
 
 @export
-def dump_pil(obj: "PIL.Image", path: PathType, **kwargs: Any) -> None:
+def dump_pil(obj, path, **kwargs):
     """
     Dump obj into the image file via Pillow.
     """
     obj.save(os.fspath(path), **kwargs)
 
 @export
-class PILImageFileAccessor(FileAccessor["PIL.Image"]):
+class PILImageFileAccessor(FileAccessor):
     """
     A helper class for accessing files of image type via Pillow.
     """
@@ -261,31 +257,31 @@ class PILImageFileAccessor(FileAccessor["PIL.Image"]):
     ]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_pil
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_pil
 
 pandas, _ = optional_import("pandas")
 
 @export
-def load_csv(path: PathType, **kwargs: Any) -> "pandas.DataFrame":
+def load_csv(path, **kwargs):
     """
     Load csv from the path file.
     """
     return pandas.read_csv(path, **kwargs)
 
 @export
-def dump_csv(obj: "pandas.DataFrame", path: PathType, **kwargs: Any) -> None:
+def dump_csv(obj, path, **kwargs):
     """
     Load obj into the csv file.
     """
     obj.to_csv(path, **kwargs)
 
 @export
-class CsvFileAccessor(FileAccessor["pandas.DataFrame"]):
+class CsvFileAccessor(FileAccessor):
     """
     A helper class for accessing files of csv type (.csv).
     """
@@ -293,29 +289,29 @@ class CsvFileAccessor(FileAccessor["pandas.DataFrame"]):
     supported_types = [".csv"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_csv
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_csv
 
 @export
-def load_excel(path: PathType, **kwargs: Any) -> "pandas.DataFrame":
+def load_excel(path, **kwargs):
     """
     Load Excel from the path file.
     """
     return pandas.read_excel(path, **kwargs)
 
 @export
-def dump_excel(obj: "pandas.DataFrame", path: PathType, **kwargs: Any) -> None:
+def dump_excel(obj, path, **kwargs):
     """
     Load obj into the Excel file.
     """
     obj.to_excel(path, **kwargs)
 
 @export
-class XlsxFileAccessor(FileAccessor["pandas.DataFrame"]):
+class XlsxFileAccessor(FileAccessor):
     """
     A helper class for accessing files of xlsx type (.xlsx).
     """
@@ -323,31 +319,31 @@ class XlsxFileAccessor(FileAccessor["pandas.DataFrame"]):
     supported_types = [".xlsx"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_excel
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_excel
 
 numpy, _ = optional_import("numpy")
 
 @export
-def load_numpy(path: PathType, **kwargs: Any) -> "numpy.ndarray":
+def load_numpy(path, **kwargs):
     """
     Load numpy from the path file.
     """
     return numpy.load(path, allow_pickle=kwargs.pop("allow_pickle", True), **kwargs)
 
 @export
-def dump_numpy(obj: "numpy.ndarray", path: PathType, **kwargs: Any) -> None:
+def dump_numpy(obj, path, **kwargs):
     """
     Dump obj into the numpy file.
     """
     numpy.save(path, obj, **kwargs)
 
 @export
-class NumpyFileAccessor(FileAccessor["numpy.ndarray"]):
+class NumpyFileAccessor(FileAccessor):
     """
     A helper class for accessing files of numpy type (.npy, .npz).
     """
@@ -355,31 +351,31 @@ class NumpyFileAccessor(FileAccessor["numpy.ndarray"]):
     supported_types = [".npy", ".npz"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_numpy
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_numpy
 
 torch, _ = optional_import("torch")
 
 @export
-def load_torch(path: PathType, **kwargs: Any) -> "torch.Tensor":
+def load_torch(path, **kwargs):
     """
     Load torch from the path file.
     """
     return torch.load(path, **kwargs)
 
 @export
-def dump_torch(obj: "torch.Tensor", path: PathType, **kwargs: Any) -> None:
+def dump_torch(obj, path, **kwargs):
     """
     Dump obj into the torch file.
     """
     torch.save(obj, path, **kwargs)
 
 @export
-class TorchFileAccessor(FileAccessor["torch.Tensor"]):
+class TorchFileAccessor(FileAccessor):
     """
     A helper class for accessing files of torch type (.pt, .pth).
     """
@@ -387,24 +383,24 @@ class TorchFileAccessor(FileAccessor["torch.Tensor"]):
     supported_types = [".pt", ".pth"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_torch
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_torch
 
 archive, _ = optional_import("archive")
 
 @export
-def extract_archive(src: PathType, dst: PathType, **kwargs: Any):
+def extract_archive(src, dst, **kwargs):
     """
     Extract the archive file src into the folder dst.
     """
     archive.extract(os.fspath(src), os.fspath(dst), **kwargs)
 
 @export
-class ArchiveFileAccessor(FileAccessor[None]):
+class ArchiveFileAccessor(FileAccessor):
     """
     A helper class for extracting an archive into a folder (.zip, .tar, ...).
     """
@@ -415,15 +411,15 @@ class ArchiveFileAccessor(FileAccessor[None]):
     ]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         raise NotImplementedError("the archive file accessor only extract method can be called.")
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         raise NotImplementedError("the archive file accessor only extract method can be called.")
 
     # noinspection PyMethodMayBeStatic
-    def extract(self, src: PathType, dst: PathType, **kwargs: Any) -> None:
+    def extract(self, src, dst, **kwargs):
         """
         Extract the archive file src into the folder dst.
         """
@@ -432,7 +428,7 @@ class ArchiveFileAccessor(FileAccessor[None]):
 yaml, _ = optional_import("yaml")
 
 @export
-def load_yaml(path: PathType, **_kwargs: Any) -> Any:
+def load_yaml(path, **_kwargs):
     """
     Load yaml from the path file.
     """
@@ -440,7 +436,7 @@ def load_yaml(path: PathType, **_kwargs: Any) -> Any:
         return yaml.safe_load(fp.read())
 
 @export
-def dump_yaml(obj: Any, path: PathType, **kwargs: Any) -> None:
+def dump_yaml(obj, path, **kwargs):
     """
     Dump obj into the yaml file.
     """
@@ -448,7 +444,7 @@ def dump_yaml(obj: Any, path: PathType, **kwargs: Any) -> None:
         yaml.safe_dump(obj, fp, allow_unicode=True, **kwargs)
 
 @export
-class YamlFileAccessor(FileAccessor[Any]):
+class YamlFileAccessor(FileAccessor):
     """
     A helper class for accessing files of yaml type (.yml, .yaml).
     """
@@ -456,24 +452,24 @@ class YamlFileAccessor(FileAccessor[Any]):
     supported_types = [".yml", ".yaml"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_yaml
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_yaml
 
 toml, _ = optional_import("toml")
 
 @export
-def load_toml(path: PathType, **kwargs: Any) -> Any:
+def load_toml(path, **kwargs):
     """
     Load toml from the path file.
     """
     return toml.load(path, **kwargs)
 
 @export
-def dump_toml(obj: Any, path: PathType, **kwargs: Any) -> None:
+def dump_toml(obj, path, **kwargs):
     """
     Dump obj into the toml file.
     """
@@ -481,7 +477,7 @@ def dump_toml(obj: Any, path: PathType, **kwargs: Any) -> None:
         toml.dump(obj, fp, **kwargs)
 
 @export
-class TomlFileAccessor(FileAccessor[Any]):
+class TomlFileAccessor(FileAccessor):
     """
     A helper class for accessing files of toml type (.toml).
     """
@@ -489,31 +485,31 @@ class TomlFileAccessor(FileAccessor[Any]):
     supported_types = [".toml"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_toml
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_toml
 
 ElementTree, _ = optional_import(module="xml.etree", name="ElementTree")
 
 @export
-def load_xml(path: PathType, **kwargs: Any) -> "ElementTree":
+def load_xml(path, **kwargs):
     """
     Load xml from the path file.
     """
     return ElementTree.parse(path, **kwargs)
 
 @export
-def dump_xml(obj: "ElementTree", path: PathType, **kwargs: Any) -> None:
+def dump_xml(obj, path, **kwargs):
     """
     Dump obj into the xml file.
     """
     obj.write(path, **kwargs)
 
 @export
-class XmlFileAccessor(FileAccessor[Any]):
+class XmlFileAccessor(FileAccessor):
     """
     A helper class for accessing files of xml type (.xml).
     """
@@ -521,31 +517,31 @@ class XmlFileAccessor(FileAccessor[Any]):
     supported_types = [".xml"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_xml
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_xml
 
 BeautifulSoup, _ = optional_import(module="bs4", name="BeautifulSoup")
 
 @export
-def load_html(path: PathType, **kwargs: Any) -> "BeautifulSoup":
+def load_html(path, **kwargs):
     """
     Load html from the path file.
     """
     return BeautifulSoup(load_text(path, **kwargs), parser=kwargs.pop("parser", "lxml"))
 
 @export
-def dump_html(obj: "BeautifulSoup", path: PathType, **kwargs: Any) -> None:
+def dump_html(obj, path, **kwargs):
     """
     Dump obj into the html file.
     """
     dump_text(obj.prettify(), path, **kwargs)
 
 @export
-class HtmlFileAccessor(FileAccessor[Any]):
+class HtmlFileAccessor(FileAccessor):
     """
     A helper class for accessing files of html type (.xml).
     """
@@ -553,31 +549,31 @@ class HtmlFileAccessor(FileAccessor[Any]):
     supported_types = [".html"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_html
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_html
 
 soundfile, _ = optional_import("soundfile")
 
 @export
-def load_sound(path: PathType, **kwargs: Any) -> "numpy.ndarray":
+def load_sound(path, **kwargs):
     """
     Load sound from the path file.
     """
     return soundfile.read(os.fspath(path), **kwargs)[0]
 
 @export
-def dump_sound(obj: "numpy.ndarray", path: PathType, **kwargs: Any) -> None:
+def dump_sound(obj, path, **kwargs):
     """
     Dump obj into the sound file.
     """
     soundfile.write(os.fspath(path), obj, **kwargs)
 
 @export
-class SoundFileAccessor(FileAccessor[Any]):
+class SoundFileAccessor(FileAccessor):
     """
     A helper class for accessing files of sound type (.mp3, .raw, ...).
     """
@@ -585,20 +581,21 @@ class SoundFileAccessor(FileAccessor[Any]):
     supported_types = [".raw", ".flac", ".ogg", ".mp3"]
 
     @property
-    def loader(self) -> Callable[[PathType, Any], T]:
+    def loader(self):
         return load_sound
 
     @property
-    def dumper(self) -> Callable[[T, PathType, Any], None]:
+    def dumper(self):
         return dump_sound
 
-# Note that the native list is thread-safe supported by GIL.
-_file_accessors: List[FileAccessor] = [
-    module() for name, module in globals().items() if name.endswith("FileAccessor") and name != "FileAccessor"
+# Note that the native list is thread-safe supported by GIL
+_file_accessors = [
+    module() for name, module in globals().items()
+    if name.endswith("FileAccessor") and name != "FileAccessor"
 ]
 
 @export
-def add_file_accessor(accessor: FileAccessor) -> None:
+def add_file_accessor(accessor):
     """
     Add a FileAccessor into global file accessor pool. Note that the pool only allows one instance type has one accessor.
     If multiple times adding same instance type accessors into the pool, the newest accessor will be retained.
@@ -612,7 +609,7 @@ def add_file_accessor(accessor: FileAccessor) -> None:
     _file_accessors.append(accessor)
 
 @export
-def match_file_accessor(ext: str, accessor_type: Optional[Type[FileAccessor]] = None) -> Optional[FileAccessor]:
+def match_file_accessor(ext, accessor_type=None):
     """
     Return a FileAccessor that it can access the ext type file. If there are none of FileAccessor matching with ext,
     then None will be returned.
