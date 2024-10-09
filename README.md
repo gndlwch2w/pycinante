@@ -23,5 +23,5 @@ pip install pycinante
 ### 0.0.4
 
 - Added type hints and optimized file structure for the all pycinante subpackages
-- Tested the functionality provided by pycinante has been thoroughly and completely
+- Tested the functionality provided by pycinante thoroughly and completely
 - Fixed several known bugs
