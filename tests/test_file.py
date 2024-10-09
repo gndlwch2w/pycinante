@@ -29,7 +29,7 @@ def test_modified_time():
     print(file("./file.log").modified_time())
 
 def test_size():
-    print(file("./file.log").size())
+    print(file("./test.log").size().value)
 
 def test_rename():
     print(file("./file.log").rename("test.log"))

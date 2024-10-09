@@ -2,52 +2,10 @@ from __future__ import annotations
 from functools import wraps
 import inspect
 import warnings
-from typing import Any, Tuple, TypeVar, Optional, Type, Callable
-from types import ModuleType, FunctionType, MethodType
-from re import match
+from types import FunctionType, MethodType
+from pycinante.misc import version
 
 __all__ = ["deprecated", "deprecated_arg", "deprecated_arg_default"]
-
-T = TypeVar("T")
-
-def version_str2tuple(version: str) -> Tuple[int | str, ...]:
-    """Covert a version_str into a version_tuple."""
-    def _try_cast(val: str) -> int | str:
-        try:
-            m = match(pattern="(\\d+)(.*)", string=val.strip())
-            return int(m.groups()[0]) if m else val
-        except ValueError:
-            return val
-
-    return tuple(map(_try_cast, version.split(sep="+", maxsplit=1)[0].split(".")))
-
-def version_tuple2str(version: Tuple[int | str, ...]) -> str:
-    """Covert a version tuple into a version_str."""
-    return ".".join(str(e) for e in version)
-
-def version_leq(lhs: str, rhs: str) -> bool:
-    """Returns True if version `lhs` is earlier or equal to `rhs`."""
-    for l, r in zip(version_str2tuple(str(lhs)), version_str2tuple(str(rhs))):
-        if l != r:
-            if isinstance(l, int) and isinstance(r, int):
-                return l < r
-            return f"{l}" < f"{r}"
-    return True
-
-def min_version(module: ModuleType, min_version_str: str = "") -> bool:
-    """Returns True if the module's version is greater or equal to the 'min_version'. When min_version_str is not provided,
-    it always returns True.
-    """
-    if not min_version_str or not hasattr(module, "__version__"):
-        return True  # always valid version
-    return version_str2tuple(module.__version__)[:2] >= version_str2tuple(min_version_str)[:2]
-
-def exact_version(module: ModuleType, version_str: str = "") -> bool:
-    """Returns True if the module's __version__ matches version_str."""
-    if not hasattr(module, "__version__"):
-        warnings.warn(f"{module} has no attribute __version__ in exact_version check.")
-        return False
-    return bool(module.__version__ == version_str)
 
 class DeprecatedError(Exception):
     """
@@ -55,14 +13,9 @@ class DeprecatedError(Exception):
     """
     pass
 
-def deprecated(
-    since: Optional[str] = None,
-    removed: Optional[str] = None,
-    crt_version: Optional[str] = None,
-    msg_suffix: str = "",
-    warning_category: Optional[Type[FutureWarning]] = FutureWarning
-) -> Callable[..., Any]:
-    """Marks a function or class as deprecated. If `since` is given this should be a version at or earlier than the current
+def deprecated(since=None, removed=None, crt_version=None, msg_suffix="", warning_category=FutureWarning):
+    """
+    Marks a function or class as deprecated. If `since` is given this should be a version at or earlier than the current
     version and states at what version of the definition was marked as deprecated. If `removed` is given this can be any
     version and marks when the definition was removed.
 
@@ -81,24 +34,24 @@ def deprecated(
     Returns:
         Decorated definition which warns or raises exception when used.
     """
-    if since is not None and removed is not None and not version_leq(since, removed):
+    if since is not None and removed is not None and not version.leq(since, removed):
         raise ValueError(f"since must be less or equal to removed, got since={since}, removed={removed}.")
 
     is_deprecated, is_removed = True, False
     if crt_version is not None:
         # `crt_version` is smaller than `since`, do nothing
-        if since is not None and not version_leq(since, crt_version):
+        if since is not None and not version.leq(since, crt_version):
             return lambda obj: obj
 
         # `crt_version` is greater than or equal to `removed`, raise a DeprecatedError
-        if removed is not None and version_leq(removed, crt_version):
+        if removed is not None and version.leq(removed, crt_version):
             is_removed = True
 
     # both `since` and `removed` are not specified, raise a DeprecatedError
     if since is None and removed is None:
         is_removed, is_deprecated = True, True
 
-    def _decorator(obj: Any) -> Callable[..., Any]:
+    def _decorator(obj):
         is_func = isinstance(obj, FunctionType)
         call_obj = obj if is_func else obj.__init__
 
@@ -116,7 +69,7 @@ def deprecated(
         msg = f"{msg_prefix} {msg_infix} {msg_suffix}".strip()
 
         @wraps(call_obj)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
+        def _wrapper(*args, **kwargs):
             if is_removed:
                 raise DeprecatedError(msg)
             if is_deprecated:
@@ -130,16 +83,9 @@ def deprecated(
         return obj
     return _decorator
 
-def deprecated_arg(
-    name: str,
-    since: Optional[str] = None,
-    removed: Optional[str] = None,
-    crt_version: Optional[str] = None,
-    msg_suffix: str = "",
-    new_name: Optional[str] = None,
-    warning_category: Optional[Type[FutureWarning]] = FutureWarning
-) -> Callable[..., Any]:
-    """Marks a particular named argument of a callable as deprecated. The same conditions for `since` and `removed` as
+def deprecated_arg(name, since=None, removed=None, crt_version=None, msg_suffix="", new_name=None, warning_category=FutureWarning):
+    """
+    Marks a particular named argument of a callable as deprecated. The same conditions for `since` and `removed` as
     described in the `deprecated` decorator.
 
     When the decorated definition is called, that is when the function is called or the class instantiated with args, a
@@ -161,24 +107,24 @@ def deprecated_arg(
     Returns:
         Decorated callable which warns or raises exception when deprecated argument used.
     """
-    if since is not None and removed is not None and not version_leq(since, removed):
+    if since is not None and removed is not None and not version.leq(since, removed):
         raise ValueError(f"since must be less or equal to removed, got since={since}, removed={removed}.")
 
     is_deprecated, is_removed = True, False
     if crt_version is not None:
         # `crt_version` is smaller than `since`, do nothing
-        if since is not None and not version_leq(since, crt_version):
+        if since is not None and not version.leq(since, crt_version):
             return lambda obj: obj
 
         # `crt_version` is greater than or equal to `removed`, raise a DeprecatedError
-        if removed is not None and version_leq(removed, crt_version):
+        if removed is not None and version.leq(removed, crt_version):
             is_removed = True
 
     # both `since` and `removed` are not specified, raise a DeprecatedError
     if since is None and removed is None:
         is_removed, is_deprecated = True, True
 
-    def _decorator(func: FunctionType | MethodType) -> Callable[..., Any]:
+    def _decorator(func: FunctionType | MethodType):
         arg_name = f"{func.__module__} {func.__qualname__}:{name}"
         sig = inspect.signature(func)
 
@@ -196,7 +142,7 @@ def deprecated_arg(
         msg = f"{msg_prefix} {msg_infix} {msg_suffix}".strip()
 
         @wraps(func)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
+        def _wrapper(*args, **kwargs):
             if new_name is not None and name in kwargs and new_name not in kwargs:
                 # replace the deprecated arg `name` with `new_name`
                 kwargs[new_name] = kwargs[name]
@@ -226,16 +172,9 @@ def deprecated_arg(
         return _wrapper
     return _decorator
 
-def deprecated_arg_default(
-    name: str,
-    new_default: Any,
-    since: Optional[str] = None,
-    replaced: Optional[str] = None,
-    crt_version: Optional[str] = None,
-    msg_suffix: str = "",
-    warning_category: Optional[Type[FutureWarning]] = FutureWarning
-) -> Callable[..., Any]:
-    """Marks a particular arguments default of a callable as deprecated. It is changed from `old_default` to `new_default`
+def deprecated_arg_default(name, new_default, since=None, replaced=None, crt_version=None, msg_suffix="", warning_category=FutureWarning):
+    """
+    Marks a particular arguments default of a callable as deprecated. It is changed from `old_default` to `new_default`
     in version `changed`.
 
     When the decorated definition is called, a `warning_category` is issued if `since` is given, the default is not explicitly
@@ -258,24 +197,24 @@ def deprecated_arg_default(
     Returns:
         Decorated callable which warns when deprecated default argument is not explicitly specified.
     """
-    if since is not None and replaced is not None and not version_leq(since, replaced):
+    if since is not None and replaced is not None and not version.leq(since, replaced):
         raise ValueError(f"since must be less or equal to replaced, got since={since}, replaced={replaced}.")
 
     is_deprecated, is_replaced = True, False
     if crt_version is not None:
         # `crt_version` is smaller than `since`, do nothing
-        if since is not None and not version_leq(since, crt_version):
+        if since is not None and not version.leq(since, crt_version):
             return lambda obj: obj
 
         # `crt_version` is greater than or equal to `replaced`, raise a DeprecatedError
-        if replaced is not None and version_leq(replaced, crt_version):
+        if replaced is not None and version.leq(replaced, crt_version):
             is_replaced = True
 
     # both `since` and `removed` are not specified, raise a DeprecatedError
     if since is None and replaced is None:
         is_replaced, is_deprecated = True, True
 
-    def _decorator(func: FunctionType | MethodType) -> Callable[..., Any]:
+    def _decorator(func: FunctionType | MethodType):
         arg_name = f"{func.__module__} {func.__qualname__}:{name}"
 
         if name not in (sig := inspect.signature(func)).parameters:
@@ -301,7 +240,7 @@ def deprecated_arg_default(
         msg = f"{msg_prefix} {msg_infix} {msg_suffix}".strip()
 
         @wraps(func)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
+        def _wrapper(*args, **kwargs):
             if name not in sig.bind(*args, **kwargs).arguments and is_deprecated:
                 # arg was not found so the default value is used
                 warnings.warn(message=f"{arg_name}: {msg}", category=warning_category, stacklevel=2)
