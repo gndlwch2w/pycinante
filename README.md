@@ -15,10 +15,14 @@ projects faster and more convenient.
 You can easily add all the tools supported in Pycinante to your virtual environment with the following pip command.
 
 ```shell
-pip install pycinante
+pip install pycinante -i https://pypi.python.org/simple
 ```
 
 ## Update Log
+
+### 0.0.5rc
+- Temporarily remove features that have not been rigorously tested at production level
+- Only the export function is retained and the complete test is performed
 
 ### 0.0.4
 
